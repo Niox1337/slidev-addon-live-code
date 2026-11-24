@@ -27,13 +27,20 @@ A live coding panel for [Slidev](https://sli.dev) presenter mode. Edit, run and 
 | What | Needed for |
 | --- | --- |
 | Slidev 53.1, Vue 3.5, Monaco 0.57, Markdown Exit 2.1 | The addon itself |
-| JDK (`javac` and `java` on `PATH`) | Java exercises |
-| A C compiler available as `cc` (GCC or Clang), or set `compiler` | C exercises |
-| GHC (`ghc` on `PATH`) | Haskell exercises |
 | `python3` | Terminal on macOS and Linux |
 | [`node-pty`](https://github.com/microsoft/node-pty) | Terminal on Windows |
 
 Code runs through the local Slidev dev server. A static build still shows the slides, without the live panel.
+
+### Language toolchains
+
+Install only the toolchains your exercises use. A deck with only Java exercises needs no C compiler or GHC. A missing toolchain only affects running that language, and the panel says which command it could not find.
+
+| Language | Toolchain |
+| --- | --- |
+| Java | JDK, with `javac` and `java` on `PATH` |
+| C | GCC or Clang available as `cc`, or set `compiler` |
+| Haskell | GHC, with `ghc` on `PATH` |
 
 > [!NOTE]
 > Windows support is experimental. `node-pty` compiles a native module, so it is not installed by default. Run `npm install node-pty` in the deck folder and restart Slidev.

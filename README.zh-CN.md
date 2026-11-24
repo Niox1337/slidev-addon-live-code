@@ -27,13 +27,20 @@
 | 需要什么 | 用途 |
 | --- | --- |
 | Slidev 53.1、Vue 3.5、Monaco 0.57、Markdown Exit 2.1 | 插件本身 |
-| JDK（`PATH` 中有 `javac` 和 `java`） | Java 练习 |
-| 能以 `cc` 调用的 C 编译器（GCC 或 Clang），或用 `compiler` 指定 | C 练习 |
-| GHC（`PATH` 中有 `ghc`） | Haskell 练习 |
 | `python3` | macOS 和 Linux 上的终端 |
 | [`node-pty`](https://github.com/microsoft/node-pty) | Windows 上的终端 |
 
 代码由本机的 Slidev 开发服务器运行。静态构建仍能放映课件，但没有现场面板。
+
+### 语言工具链
+
+只需安装练习用到的工具链。只有 Java 练习的课件不需要 C 编译器或 GHC。缺少某个工具链只会影响这门语言的运行，面板会提示找不到哪个命令。
+
+| 语言 | 工具链 |
+| --- | --- |
+| Java | JDK，`PATH` 中有 `javac` 和 `java` |
+| C | 能以 `cc` 调用的 GCC 或 Clang，或用 `compiler` 指定 |
+| Haskell | GHC，`PATH` 中有 `ghc` |
 
 > [!NOTE]
 > Windows 支持还在试验阶段。`node-pty` 需要在本机编译原生模块，所以没有默认安装。在课件目录运行 `npm install node-pty`，然后重启 Slidev。
