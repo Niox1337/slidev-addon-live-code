@@ -292,7 +292,7 @@ onMounted(() => {
     cursorBlink: !props.audience,
     disableStdin: props.audience,
     scrollback: 5000,
-    allowProposedApi: false,
+    allowProposedApi: !props.audience,
     macOptionIsMeta: true,
     theme: theme(),
   })
