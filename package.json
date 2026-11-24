@@ -1,7 +1,18 @@
 {
   "name": "slidev-addon-live-code",
-  "private": true,
+  "version": "0.1.0",
+  "description": "A live coding dock with a built-in terminal for Slidev.",
   "type": "module",
+  "files": [
+    "/*.vue",
+    "/*.mjs",
+    "/*.css",
+    "/*.py",
+    "/*.ttf",
+    "languages/",
+    "credits.txt",
+    "README.md"
+  ],
   "keywords": [
     "slidev",
     "slidev-addon"

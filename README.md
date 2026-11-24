@@ -4,13 +4,18 @@
 
 ## 接入另一套课件
 
-在新课件的 `slides.md` 第一段配置内加上本插件的绝对路径。也可以把插件目录复制到 `slides.md` 旁边，路径写成 `'@/slidev-addon-live-code'`。
+在课件目录里安装插件。
+
+```sh
+npm install slidev-addon-live-code
+```
+
+然后在 `slides.md` 第一段配置里加上 `addons: [live-code]`。Slidev 会找到 `slidev-addon-live-code`。
 
 ```yaml
 ---
 theme: default
-addons:
-  - /Users/niox/part-time/slidev-addon-live-code
+addons: [live-code]
 ---
 ```
 
@@ -20,11 +25,7 @@ addons:
 npm install @slidev/client@53.1.0 monaco-editor@0.57.0 markdown-exit@2.1.3
 ```
 
-内置终端使用 xterm.js，它是插件自己的依赖。从源码目录引用插件时，先在插件目录里安装一次。插件目录的 `.npmrc` 让 npm 跳过上面那些由课件提供的依赖，避免装出第二份 Vue 或 Monaco。
-
-```sh
-cd slidev-addon-live-code && npm install
-```
+也可以把插件源码放在 `slides.md` 旁边，在配置里写 `addons: ['./slidev-addon-live-code']`，然后在插件目录运行 `npm install` 安装 xterm.js 等依赖。插件目录的 `.npmrc` 让 npm 跳过由课件提供的 peer dependencies，避免装出第二份 Vue 或 Monaco。
 
 在同一个课件目录创建 `live-code.config.mjs`。下面的配置递归读取 `java-example/` 下的 `.java` 文件，默认打开其中的 `Hello.java`。
 
