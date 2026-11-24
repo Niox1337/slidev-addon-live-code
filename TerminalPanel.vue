@@ -1,10 +1,13 @@
 <script setup>
 import { FitAddon } from '@xterm/addon-fit'
+import { SearchAddon } from '@xterm/addon-search'
+import { WebLinksAddon } from '@xterm/addon-web-links'
 import { Terminal } from '@xterm/xterm'
 import '@xterm/xterm/css/xterm.css'
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import LcIcon from './LcIcon.vue'
-import { browserLocale, t } from './i18n.mjs'
+import { sourceLocation } from './file-language.mjs'
+import { browserLocale, isMac, keys, t } from './i18n.mjs'
 
 const props = defineProps({
   endpoint: { type: String, required: true },
@@ -12,7 +15,9 @@ const props = defineProps({
   projectLabel: { type: String, default: '' },
   active: Boolean,
   audience: Boolean,
+  resolveLocation: { type: Function, default: null },
 })
+const emit = defineEmits(['reveal'])
 
 const palettes = {
   light: {
@@ -29,10 +34,19 @@ const palettes = {
   },
 }
 
+const searchColors = {
+  light: { matchBackground: '#f5dfa6', activeMatchBackground: '#e9b44c', matchOverviewRuler: '#d9a032', activeMatchColorOverviewRuler: '#b87800' },
+  dark: { matchBackground: '#5a4a24', activeMatchBackground: '#8f6d1f', matchOverviewRuler: '#c9952c', activeMatchColorOverviewRuler: '#f2c26b' },
+}
+
 const host = ref()
 const state = ref('connecting')
+const searchOpen = ref(false)
+const searchInput = ref()
+const search = reactive({ term: '', caseSensitive: false, regex: false, index: -1, count: 0 })
 let terminal
 let fit
+let finder
 let source
 let resizeObserver
 let themeObserver
@@ -174,6 +188,101 @@ function focus() {
   terminal?.focus()
 }
 
+function isDark() {
+  return document.documentElement.classList.contains('dark')
+}
+
+function find(backwards = false, incremental = false) {
+  if (!finder) return
+  if (!search.term) {
+    finder.clearDecorations()
+    search.index = -1
+    search.count = 0
+    return
+  }
+  const options = {
+    caseSensitive: search.caseSensitive,
+    regex: search.regex,
+    incremental,
+    decorations: searchColors[isDark() ? 'dark' : 'light'],
+  }
+  try {
+    if (backwards) finder.findPrevious(search.term, options)
+    else finder.findNext(search.term, options)
+  }
+  catch {
+    search.index = -1
+    search.count = 0
+  }
+}
+
+async function openSearch() {
+  if (props.audience) return
+  searchOpen.value = true
+  const selection = terminal.getSelection()
+  if (selection && !selection.includes('\n')) search.term = selection
+  await nextTick()
+  searchInput.value?.select()
+  if (search.term) find(false, true)
+}
+
+function closeSearch() {
+  searchOpen.value = false
+  finder?.clearDecorations()
+  search.index = -1
+  search.count = 0
+  terminal.focus()
+}
+
+function toggleSearchOption(name) {
+  search[name] = !search[name]
+  find(false, true)
+  searchInput.value?.focus()
+}
+
+function isSearchKey(event) {
+  if (event.key.toLowerCase() !== 'f' || event.altKey) return false
+  return isMac ? event.metaKey && !event.ctrlKey && !event.shiftKey : event.ctrlKey && event.shiftKey && !event.metaKey
+}
+
+function lineCells(y) {
+  const line = terminal.buffer.active.getLine(y - 1)
+  if (!line) return null
+  let text = ''
+  const columns = []
+  for (let x = 0; x < line.length; x += 1) {
+    const cell = line.getCell(x)
+    if (!cell || cell.getWidth() === 0) continue
+    const chars = cell.getChars() || ' '
+    text += chars
+    for (let index = 0; index < chars.length; index += 1) columns.push(x)
+  }
+  return { text, columns }
+}
+
+function provideLinks(y, callback) {
+  const line = props.resolveLocation ? lineCells(y) : null
+  if (!line) return callback(undefined)
+  const links = []
+  for (const match of line.text.matchAll(sourceLocation)) {
+    const file = props.resolveLocation(match[1])
+    if (!file) continue
+    const label = t('output.openLocation', { location: match[0] })
+    links.push({
+      range: {
+        start: { x: line.columns[match.index] + 1, y },
+        end: { x: line.columns[match.index + match[0].length - 1] + 1, y },
+      },
+      text: match[0],
+      decorations: { pointerCursor: true, underline: true },
+      activate: () => emit('reveal', { file, line: Number(match[2]) }),
+      hover: () => { host.value.title = label },
+      leave: () => { host.value.title = '' },
+    })
+  }
+  callback(links.length ? links : undefined)
+}
+
 onMounted(() => {
   const style = getComputedStyle(host.value)
   terminal = new Terminal({
@@ -189,6 +298,24 @@ onMounted(() => {
   })
   fit = new FitAddon()
   terminal.loadAddon(fit)
+  if (!props.audience) {
+    finder = new SearchAddon()
+    terminal.loadAddon(finder)
+    finder.onDidChangeResults(({ resultIndex, resultCount }) => {
+      search.index = resultIndex
+      search.count = resultCount
+    })
+    terminal.loadAddon(new WebLinksAddon((event, uri) => {
+      if (event.button === 0) window.open(uri, '_blank', 'noopener')
+    }))
+    terminal.registerLinkProvider({ provideLinks })
+    terminal.attachCustomKeyEventHandler(event => {
+      if (event.type !== 'keydown' || !isSearchKey(event)) return true
+      event.preventDefault()
+      openSearch()
+      return false
+    })
+  }
   terminal.open(host.value)
   terminal.onData(data => {
     if (props.audience) return
@@ -210,6 +337,7 @@ onMounted(() => {
   resizeObserver.observe(host.value)
   themeObserver = new MutationObserver(() => {
     terminal.options.theme = theme()
+    if (searchOpen.value && search.term) find(false, true)
   })
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
   connect()
@@ -235,7 +363,7 @@ onBeforeUnmount(() => {
   terminal?.dispose()
 })
 
-defineExpose({ focus })
+defineExpose({ focus, openSearch })
 </script>
 
 <template>
@@ -253,6 +381,16 @@ defineExpose({ focus })
       </span>
       <span v-if="state === 'connecting'" class="lc-terminal-meta" role="status">{{ t('terminal.connecting') }}</span>
       <div v-if="!audience" class="lc-terminal-actions">
+        <button
+          type="button"
+          class="lc-icon-btn"
+          :aria-pressed="searchOpen"
+          :title="`${t('terminal.search')} (${keys.terminalSearch})`"
+          :aria-label="t('terminal.search')"
+          @click="searchOpen ? closeSearch() : openSearch()"
+        >
+          <LcIcon name="search" />
+        </button>
         <button type="button" class="lc-icon-btn" :title="t('terminal.clear')" :aria-label="t('terminal.clear')" @click="clear">
           <LcIcon name="clear-all" />
         </button>
@@ -271,7 +409,58 @@ defineExpose({ focus })
         </button>
       </div>
     </header>
-    <div ref="host" class="lc-terminal-body" />
+    <div class="lc-terminal-stage">
+      <form v-if="searchOpen" class="lc-terminal-search" role="search" @submit.prevent="find(false)">
+        <input
+          ref="searchInput"
+          v-model="search.term"
+          type="text"
+          :placeholder="t('terminal.searchPlaceholder')"
+          :aria-label="t('terminal.search')"
+          autocomplete="off"
+          spellcheck="false"
+          @input="find(false, true)"
+          @keydown.stop
+          @keydown.enter.exact.prevent="find(false)"
+          @keydown.shift.enter.prevent="find(true)"
+          @keydown.esc.prevent="closeSearch"
+        >
+        <button
+          type="button"
+          class="lc-icon-btn lc-terminal-search-option"
+          :aria-pressed="search.caseSensitive"
+          :title="t('terminal.searchCase')"
+          :aria-label="t('terminal.searchCase')"
+          @click="toggleSearchOption('caseSensitive')"
+        >
+          <LcIcon name="case-sensitive" />
+        </button>
+        <button
+          type="button"
+          class="lc-icon-btn lc-terminal-search-option"
+          :aria-pressed="search.regex"
+          :title="t('terminal.searchRegex')"
+          :aria-label="t('terminal.searchRegex')"
+          @click="toggleSearchOption('regex')"
+        >
+          <LcIcon name="regex" />
+        </button>
+        <span class="lc-terminal-search-count" role="status">
+          <template v-if="search.term && search.count > 0">{{ t('terminal.searchCount', { index: search.index + 1, count: search.count }) }}</template>
+          <template v-else-if="search.term">{{ t('terminal.searchNone') }}</template>
+        </span>
+        <button type="button" class="lc-icon-btn" :disabled="!search.count" :title="t('terminal.searchPrevious')" :aria-label="t('terminal.searchPrevious')" @click="find(true)">
+          <LcIcon name="arrow-up" />
+        </button>
+        <button type="button" class="lc-icon-btn" :disabled="!search.count" :title="t('terminal.searchNext')" :aria-label="t('terminal.searchNext')" @click="find(false)">
+          <LcIcon name="arrow-down" />
+        </button>
+        <button type="button" class="lc-icon-btn" :title="t('terminal.searchClose')" :aria-label="t('terminal.searchClose')" @click="closeSearch">
+          <LcIcon name="close" />
+        </button>
+      </form>
+      <div ref="host" class="lc-terminal-body" />
+    </div>
   </section>
 </template>
 
@@ -337,6 +526,63 @@ defineExpose({ focus })
 
 @container lc-panel (max-width: 400px) {
   .lc-terminal-project { display: none; }
+}
+
+.lc-terminal-stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.lc-terminal-search {
+  position: absolute;
+  top: 6px;
+  right: 14px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - 28px);
+  padding: 3px 4px 3px 8px;
+  border: 1px solid var(--lc-border-strong);
+  border-radius: var(--lc-radius);
+  background: var(--lc-chrome);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 14%);
+}
+
+.lc-terminal-search input {
+  flex: 1 1 160px;
+  min-width: 60px;
+  height: 24px;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--lc-text);
+  font: 12px var(--lc-mono);
+}
+
+.lc-terminal-search input::placeholder { color: var(--lc-text-3); font-family: var(--lc-font); }
+
+.lc-terminal-search-option[aria-pressed="true"] {
+  background: var(--lc-accent-soft);
+  color: var(--lc-accent);
+}
+
+.lc-terminal-search-count {
+  min-width: 4.5em;
+  padding: 0 4px;
+  color: var(--lc-text-3);
+  font-size: 11px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.lc-terminal-actions .lc-icon-btn[aria-pressed="true"] { color: var(--lc-accent); }
+
+@container lc-panel (max-width: 360px) {
+  .lc-terminal-search-option, .lc-terminal-search-count { display: none; }
 }
 
 .lc-terminal-body {

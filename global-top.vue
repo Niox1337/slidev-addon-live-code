@@ -798,6 +798,8 @@ onBeforeUnmount(() => {
                 :project="screen.project"
                 :project-label="currentProjectLabel"
                 :active="dockOpen && layout.panelOpen && layout.panelTab === 'terminal'"
+                :resolve-location="resolveLocation"
+                @reveal="reveal"
               >
                 <template #title>
                   <PanelTabs v-model="layout.panelTab" />

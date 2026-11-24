@@ -13,6 +13,7 @@ export const keys = {
   panel: isMac ? '⌘J' : 'Ctrl+J',
   save: isMac ? '⌘S' : 'Ctrl+S',
   terminal: 'Ctrl+`',
+  terminalSearch: isMac ? '⌘F' : 'Ctrl+Shift+F',
 }
 
 export function t(key, params) {
