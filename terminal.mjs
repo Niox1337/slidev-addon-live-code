@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process'
 import { rmSync, watch } from 'node:fs'
 import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const helper = fileURLToPath(new URL('./terminal-pty.py', import.meta.url))
@@ -12,6 +12,7 @@ const scanDelay = 200
 const scanEntryLimit = 2000
 const scanDepthLimit = 8
 const scanFileLimit = 200_000
+let windowsPty
 
 export function createTerminals({ message, accept, onChange }) {
   const sessions = new Map()
@@ -37,8 +38,8 @@ export function createTerminals({ message, accept, onChange }) {
   }
 
   function inside(session, name) {
-    const path = resolve(session.directory, name)
-    if (!path.startsWith(`${session.directory}/`)) throw new Error(`Path outside the terminal folder: ${name}`)
+    const path = resolve(session.directory, name.split('/').join(sep))
+    if (!path.startsWith(`${session.directory}${sep}`)) throw new Error(`Path outside the terminal folder: ${name}`)
     return path
   }
 
@@ -151,6 +152,7 @@ export function createTerminals({ message, accept, onChange }) {
     broadcast(id, { type: 'start', cols, rows })
     await mkdir(session.directory)
     await queueWrite(session, files, folders)
+    if (process.platform === 'win32' && session.closed) return
     try {
       session.watcher = watch(session.directory, { recursive: true }, () => scheduleScan(session))
       session.watcher.on('error', () => {})
@@ -159,10 +161,33 @@ export function createTerminals({ message, accept, onChange }) {
       console.error('Slidev live code terminal:', error)
     }
 
+    const env = { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'slidev-live-code' }
+    if (process.platform === 'win32') {
+      const pty = await (windowsPty ??= import('node-pty').catch(() => null))
+      if (session.closed) return
+      if (!pty) {
+        record(session, `\r\n${message('terminal.noWindowsPty')}\r\n`)
+        finish(session, null)
+        return
+      }
+      try {
+        const shell = process.env.COMSPEC || 'powershell.exe'
+        const terminal = pty.spawn(shell, [], { cols, rows, cwd: session.directory, env })
+        session.pty = terminal
+        terminal.onData(text => record(session, text))
+        terminal.onExit(({ exitCode = null }) => finish(session, exitCode))
+      }
+      catch {
+        record(session, `\r\n${message('terminal.startFailed')}\r\n`)
+        finish(session, null)
+      }
+      return
+    }
+
     const shell = process.env.SHELL || '/bin/sh'
     const child = spawn('python3', [helper, String(rows), String(cols), shell, '-l'], {
       cwd: session.directory,
-      env: { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'slidev-live-code' },
+      env,
       stdio: ['pipe', 'pipe', 'pipe', 'pipe'],
     })
     session.child = child
@@ -179,15 +204,19 @@ export function createTerminals({ message, accept, onChange }) {
 
   function input(id, data) {
     const session = sessions.get(id)
-    if (!session?.child || session.closed) return false
-    session.child.stdin.write(data)
+    if (!session || session.closed || session.stopping) return false
+    if (session.pty) session.pty.write(data)
+    else if (session.child) session.child.stdin.write(data)
+    else return false
     return true
   }
 
   function resize(id, cols, rows) {
     const session = sessions.get(id)
-    if (!session?.child || session.closed) return false
-    session.child.stdio[3].write(`${rows} ${cols}\n`)
+    if (!session || session.closed || session.stopping) return false
+    if (session.pty) session.pty.resize(cols, rows)
+    else if (session.child) session.child.stdio[3].write(`${rows} ${cols}\n`)
+    else return false
     if (session.cols !== cols || session.rows !== rows) {
       Object.assign(session, { cols, rows })
       broadcast(id, { type: 'resize', cols, rows })
@@ -195,10 +224,17 @@ export function createTerminals({ message, accept, onChange }) {
     return true
   }
 
+  function stopPty(session) {
+    if (session.stopping) return
+    session.stopping = true
+    session.pty.kill()
+  }
+
   function kill(id) {
     const session = sessions.get(id)
     if (!session) return false
-    if (session.child) session.child.kill('SIGTERM')
+    if (session.pty) stopPty(session)
+    else if (session.child) session.child.kill('SIGTERM')
     else finish(session, null)
     return true
   }
@@ -237,10 +273,16 @@ export function createTerminals({ message, accept, onChange }) {
     for (const group of listeners.values()) for (const response of group) response.end()
     listeners.clear()
     for (const session of sessions.values()) {
-      session.closed = true
       clearTimeout(session.scanTimer)
       session.watcher?.close()
-      session.child?.kill('SIGTERM')
+      if (session.pty) {
+        clearTimeout(session.syncTimer)
+        stopPty(session)
+      }
+      else {
+        session.closed = true
+        session.child?.kill('SIGTERM')
+      }
       try {
         rmSync(session.root, { recursive: true, force: true })
       }
