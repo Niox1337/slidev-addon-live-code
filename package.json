@@ -10,7 +10,8 @@
     "server/",
     "shared/",
     "credits.txt",
-    "README.md"
+    "README.md",
+    "README.zh-CN.md"
   ],
   "keywords": [
     "slidev",
