@@ -19,6 +19,7 @@ const OutputPanel = lazy(() => import('./OutputPanel.vue'))
 const TerminalPanel = lazy(() => import('./TerminalPanel.vue'))
 const PanelTabs = lazy(() => import('./PanelTabs.vue'))
 const DiffView = lazy(() => import('./DiffView.vue'))
+const ShortcutHelp = lazy(() => import('./ShortcutHelp.vue'))
 
 const publicEndpoint = `${import.meta.env.BASE_URL}__slidev_live_code`
 const storageKey = 'slidev-live-code:layout'
@@ -75,6 +76,7 @@ const savedFlash = ref(false)
 const diffOpen = ref(false)
 let savedTimer
 const quickOpen = ref()
+const shortcutHelp = ref()
 const tabStrip = ref()
 const launcher = ref()
 const launcherTarget = shallowRef()
@@ -434,6 +436,11 @@ function isTextField(target) {
   return target instanceof HTMLElement && target.matches('input, textarea, select') && !target.closest('.monaco-editor')
 }
 
+function isTypingTarget(target) {
+  return target instanceof HTMLElement
+    && Boolean(target.closest('input, textarea, select, [contenteditable="true"], .monaco-editor, .xterm'))
+}
+
 async function toggleTerminal() {
   if (layout.panelOpen && layout.panelTab === 'terminal') {
     layout.panelOpen = false
@@ -450,6 +457,12 @@ function onKeydown(event) {
     event.preventDefault()
     event.stopPropagation()
     toggleTerminal()
+    return
+  }
+  if (dockOpen.value && event.key === '?' && !event.metaKey && !event.ctrlKey && !event.altKey && !isTypingTarget(event.target)) {
+    event.preventDefault()
+    event.stopPropagation()
+    shortcutHelp.value?.toggle()
     return
   }
   if (!dockOpen.value || event.altKey || !(isMac ? event.metaKey : event.ctrlKey)) return
@@ -907,8 +920,18 @@ onBeforeUnmount(() => {
         </button>
         <span v-if="caret" class="lc-status-item" :class="{ 'lc-status-end': connectionLost }">{{ t('status.position', { line: caret.lineNumber, column: caret.column }) }}</span>
         <span class="lc-status-item" :class="{ 'lc-status-end': connectionLost && !caret }">{{ fileLanguage }}</span>
+        <button
+          type="button"
+          class="lc-status-item"
+          :title="`${t('help.title')} (${keys.help})`"
+          :aria-label="t('help.title')"
+          @click="shortcutHelp?.toggle()"
+        >
+          <LcIcon name="keyboard" />
+        </button>
       </footer>
 
+      <ShortcutHelp ref="shortcutHelp" />
       <QuickOpen ref="quickOpen" :projects="screen.projects" :project="screen.project" :busy="busy" :recent="recent" @select="openFile" />
     </section>
   </Teleport>

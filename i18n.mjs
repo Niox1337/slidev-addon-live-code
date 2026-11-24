@@ -14,6 +14,7 @@ export const keys = {
   save: isMac ? '⌘S' : 'Ctrl+S',
   terminal: 'Ctrl+`',
   terminalSearch: isMac ? '⌘F' : 'Ctrl+Shift+F',
+  help: '?',
 }
 
 export function t(key, params) {
