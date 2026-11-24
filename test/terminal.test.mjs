@@ -49,7 +49,7 @@ describe.skipIf(!pythonAvailable)('terminal sessions', () => {
 
   async function workspace() {
     expect(terminals.input(id, 'printf \'workspace:%s\\n\' "$PWD"\r')).toBe(true)
-    const path = () => output().match(/^workspace:(\/[^\r\n]+)\r?$/m)?.[1]
+    const path = () => output().match(/workspace:(\/[^\r\n]+)/)?.[1]
     await expect.poll(path, pollOptions).toBeDefined()
     return path()
   }
