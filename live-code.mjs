@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url'
 import { languages } from './languages/index.mjs'
 import { normaliseLocale, translate } from './messages.mjs'
 import { createTerminals } from './terminal.mjs'
+import { createZip } from './zip.mjs'
 
 const notesDirectory = '.slidev-live-code-notes'
 const notesGlob = `**/${notesDirectory}/**`
@@ -220,6 +221,7 @@ export function liveCode() {
       const presenterRoute = `${publicRoute}/presenter`
       const terminalRoute = `${presenterRoute}/terminal`
       const audienceTerminalRoute = `${publicRoute}/terminal`
+      const audienceDownloadRoute = `${publicRoute}/download`
       const credential = `slidev-live-code-${server.config.server.port}=${randomBytes(24).toString('hex')}`
       let projects
       let steps
@@ -884,7 +886,8 @@ export function liveCode() {
         const isTerminal = pathname === terminalRoute
         const isPresenter = pathname === presenterRoute || isTerminal
         const isAudienceTerminal = pathname === audienceTerminalRoute
-        if (!isPresenter && !isAudienceTerminal && pathname !== publicRoute) return next()
+        const isAudienceDownload = pathname === audienceDownloadRoute
+        if (!isPresenter && !isAudienceTerminal && !isAudienceDownload && pathname !== publicRoute) return next()
         const requestLocale = pinnedLocale ?? screen.locale ?? normaliseLocale(req.headers['x-live-code-locale']) ?? 'en'
         const reply = (status, data) => {
           res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
@@ -901,6 +904,31 @@ export function liveCode() {
           const id = new URLSearchParams(req.url.split('?')[1] ?? '').get('project')
           if (!projects || !screen.visible || screen.panel !== 'terminal' || id !== screen.project) return fail(403, 'error.audienceReadOnly')
           return terminals.subscribe(id, req, res)
+        }
+        if (isAudienceDownload) {
+          if (req.method !== 'GET') return fail(405, 'error.audienceReadOnly')
+          const id = new URLSearchParams(req.url.split('?')[1] ?? '').get('project')
+          if (!projects || !screen.visible || id !== screen.project) return fail(403, 'error.audienceReadOnly')
+          const { label, files } = selection()
+          const entries = Object.entries(files)
+            .filter(([name]) => !name.split('/').some(part => part.startsWith('.')))
+            .map(([name, text]) => ({ name: `${id}/${name}`, text }))
+          let archive
+          try {
+            archive = createZip([{ name: `${id}/`, text: '' }, ...entries])
+          }
+          catch (error) {
+            console.error('Slidev live code download:', error)
+            return fail(500, 'audience.downloadFailed')
+          }
+          const filename = encodeURIComponent(`${label || id}.zip`.toWellFormed())
+            .replace(/['()*]/g, char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`)
+          res.writeHead(200, {
+            'Content-Type': 'application/zip',
+            'Content-Disposition': `attachment; filename*=UTF-8''${filename}`,
+            'Cache-Control': 'no-store',
+          })
+          return res.end(archive)
         }
         if (!isPresenter) {
           if (req.method !== 'GET') return fail(405, 'error.audienceReadOnly')

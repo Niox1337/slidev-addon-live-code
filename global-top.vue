@@ -60,6 +60,8 @@ const currentProjectLabel = computed(() => screen.value?.projects?.find(project 
 const savedTabs = Array.isArray(saved.tabs) ? saved.tabs : []
 
 const screen = shallowRef()
+const copyStatus = ref('')
+let copyTimer
 const error = ref('')
 const connectionLost = ref(false)
 const noteDrafts = reactive(new Map())
@@ -142,6 +144,56 @@ function update(data) {
   if (!screen.value || data.revision > screen.value.revision) screen.value = data
   if (data.locale) serverLocale.value = data.locale
   if (data.projects) rememberLanguage(data.projects)
+}
+
+function copyWithTextarea(code) {
+  const focused = document.activeElement
+  const textarea = document.createElement('textarea')
+  textarea.value = code
+  textarea.readOnly = true
+  textarea.tabIndex = -1
+  Object.assign(textarea.style, { position: 'fixed', inset: '0 auto auto 0', opacity: '0', fontSize: '16px' })
+  document.body.append(textarea)
+  try {
+    textarea.select()
+    textarea.setSelectionRange(0, textarea.value.length)
+    return document.execCommand('copy')
+  }
+  catch {
+    return false
+  }
+  finally {
+    textarea.remove()
+    focused?.focus?.({ preventScroll: true })
+  }
+}
+
+async function copyAudienceFile() {
+  if (!visible.value) return
+  const file = fileId.value
+  const code = screen.value.code
+  let copied = true
+  try {
+    await navigator.clipboard.writeText(code)
+  }
+  catch {
+    copied = copyWithTextarea(code)
+  }
+  if (!visible.value || file !== fileId.value) return
+  clearTimeout(copyTimer)
+  copyStatus.value = copied ? 'audience.copied' : 'audience.copyFailed'
+  copyTimer = setTimeout(() => { copyStatus.value = '' }, 1500)
+}
+
+function downloadAudienceProject() {
+  if (!visible.value) return
+  const link = document.createElement('a')
+  link.href = `${publicEndpoint}/download?${new URLSearchParams({ project: screen.value.project })}`
+  link.download = ''
+  link.hidden = true
+  document.body.append(link)
+  link.click()
+  link.remove()
 }
 
 function rememberLanguage(projects) {
@@ -541,6 +593,11 @@ watch(visible, (shown, _, onCleanup) => {
   if (shown && !isPresenter.value) onCleanup(lockShortcuts())
 })
 
+watch([fileId, visible], () => {
+  clearTimeout(copyTimer)
+  copyStatus.value = ''
+})
+
 watch(dockOpen, (open, _, onCleanup) => {
   if (!open || !isPresenter.value) return
   const timer = setInterval(poll, 160)
@@ -567,6 +624,7 @@ function updateOrientation() {
 onBeforeUnmount(() => {
   clearTimeout(connectTimer)
   clearTimeout(savedTimer)
+  clearTimeout(copyTimer)
   dockMedia?.removeEventListener('change', updateOrientation)
   window.removeEventListener('keydown', onKeydown, true)
   hot?.off('slidev:live-code', update)
@@ -947,10 +1005,23 @@ onBeforeUnmount(() => {
         :aria-label="screen.label"
       >
         <header class="lc-audience-header">
-          <LcIcon name="file-code" />
-          <span class="lc-audience-project">{{ screen.label }}</span>
-          <LcIcon name="chevron-right" class="lc-audience-sep" />
-          <span class="lc-audience-file">{{ screen.file }}</span>
+          <div class="lc-audience-path">
+            <LcIcon name="file-code" />
+            <span class="lc-audience-project" :title="screen.label">{{ screen.label }}</span>
+            <LcIcon name="chevron-right" class="lc-audience-sep" />
+            <span class="lc-audience-file" :title="screen.file">{{ screen.file }}</span>
+          </div>
+          <div class="lc-audience-actions">
+            <button type="button" class="lc-btn lc-audience-action" @click="copyAudienceFile">
+              <LcIcon :name="copyStatus === 'audience.copied' ? 'check' : 'copy'" />
+              {{ t(copyStatus || 'audience.copy') }}
+            </button>
+            <button type="button" class="lc-btn lc-audience-action" @click="downloadAudienceProject">
+              <LcIcon name="desktop-download" />
+              {{ t('audience.download') }}
+            </button>
+          </div>
+          <span class="lc-sr-only" role="status">{{ copyStatus ? t(copyStatus) : '' }}</span>
         </header>
         <div class="lc-audience-body">
           <CodeEditor
@@ -1538,11 +1609,12 @@ button.lc-status-item:hover { background: var(--lc-hover); }
 
 .lc-audience-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: calc(10px * var(--lc-zoom));
+  gap: calc(6px * var(--lc-zoom)) calc(10px * var(--lc-zoom));
   flex: none;
   min-height: calc(56px * var(--lc-zoom));
-  padding: 0 28px;
+  padding: calc(6px * var(--lc-zoom)) 28px;
   background: var(--lc-chrome);
   border-bottom: 1px solid var(--lc-border);
   font-size: calc(17px * var(--lc-zoom));
@@ -1554,9 +1626,52 @@ button.lc-status-item:hover { background: var(--lc-hover); }
   color: var(--lc-accent);
 }
 
+.lc-audience-path,
+.lc-audience-actions {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--lc-zoom));
+}
+
+.lc-audience-path {
+  flex: 1 1 calc(140px * var(--lc-zoom));
+  min-width: 0;
+}
+
 .lc-audience-project { color: var(--lc-text-2); font-weight: 500; }
 .lc-audience-header .lc-audience-sep { color: var(--lc-text-3); width: calc(16px * var(--lc-zoom)); font-size: calc(16px * var(--lc-zoom)); }
 .lc-audience-file { color: var(--lc-text); font: 600 1em var(--lc-mono); }
+
+.lc-audience-project,
+.lc-audience-file {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lc-audience-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 100%;
+  margin-inline-start: auto;
+}
+
+.lc-audience-action {
+  gap: calc(6px * var(--lc-zoom));
+  min-width: 0;
+  min-height: calc(32px * var(--lc-zoom));
+  height: auto;
+  padding: calc(4px * var(--lc-zoom)) calc(10px * var(--lc-zoom));
+  color: var(--lc-text-2);
+  font-size: calc(14px * var(--lc-zoom));
+  white-space: normal;
+}
+
+.lc-audience-action .lc-icon {
+  width: calc(16px * var(--lc-zoom));
+  font-size: calc(16px * var(--lc-zoom));
+  color: inherit;
+}
 
 .lc-audience-body {
   display: grid;
