@@ -63,6 +63,8 @@ const screen = shallowRef()
 const copyStatus = ref('')
 let copyTimer
 const error = ref('')
+const deleteToast = shallowRef(null)
+const pendingDeletes = ref(0)
 const connectionLost = ref(false)
 const noteDrafts = reactive(new Map())
 const savingNotes = ref(false)
@@ -320,9 +322,18 @@ function createEntry({ kind, project, path }) {
   return send(kind === 'folder' ? 'create-folder' : 'create-file', { project, path })
 }
 
-function deleteEntry({ project, path, name }) {
-  if (!window.confirm(t('explorer.deleteConfirm', { name }))) return
-  return send('delete', { project, path })
+async function deleteEntry({ project, path, name }) {
+  pendingDeletes.value += 1
+  const deleted = await send('delete', { project, path })
+  pendingDeletes.value -= 1
+  if (deleted) deleteToast.value = { project, name }
+}
+
+function undoDelete() {
+  if (!deleteToast.value || pendingDeletes.value) return
+  const { project } = deleteToast.value
+  deleteToast.value = null
+  return send('undo-delete', { project })
 }
 
 async function renameEntry({ project, from, to }) {
@@ -505,6 +516,7 @@ async function toggleTerminal() {
 }
 
 function onKeydown(event) {
+  if (dockOpen.value && event.key === 'Escape') deleteToast.value = null
   if (dockOpen.value && event.ctrlKey && !event.metaKey && !event.altKey && event.code === 'Backquote') {
     event.preventDefault()
     event.stopPropagation()
@@ -602,6 +614,12 @@ watch(dockOpen, (open, _, onCleanup) => {
   if (!open || !isPresenter.value) return
   const timer = setInterval(poll, 160)
   onCleanup(() => clearInterval(timer))
+})
+
+watch(deleteToast, (toast, _, onCleanup) => {
+  if (!toast) return
+  const timer = setTimeout(() => { deleteToast.value = null }, 8000)
+  onCleanup(() => clearTimeout(timer))
 })
 
 onMounted(async () => {
@@ -989,6 +1007,13 @@ onBeforeUnmount(() => {
         </button>
       </footer>
 
+      <div class="lc-delete-toast" :class="{ 'is-visible': deleteToast }">
+        <span role="status">{{ deleteToast ? t('explorer.deleted', { name: deleteToast.name }) : '' }}</span>
+        <button v-if="deleteToast" type="button" class="lc-btn" :disabled="pendingDeletes > 0" @click="undoDelete">
+          {{ t('explorer.undoDelete') }}
+        </button>
+      </div>
+
       <ShortcutHelp ref="shortcutHelp" />
       <QuickOpen ref="quickOpen" :projects="screen.projects" :project="screen.project" :busy="busy" :recent="recent" @select="openFile" />
     </section>
@@ -1106,6 +1131,27 @@ onBeforeUnmount(() => {
 }
 
 .lc-dock.is-dragging { user-select: none; }
+
+.lc-delete-toast {
+  position: absolute;
+  inset-inline-end: 12px;
+  bottom: 36px;
+  z-index: 6;
+}
+
+.lc-delete-toast.is-visible {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100% - 24px);
+  padding: 6px 8px 6px 12px;
+  border: 1px solid var(--lc-border);
+  border-radius: var(--lc-radius);
+  background: var(--lc-chrome);
+  box-shadow: var(--lc-shadow-pop);
+  color: var(--lc-text-2);
+  overflow-wrap: anywhere;
+}
 
 :global(body.lc-dragging) { cursor: col-resize; }
 :global(body.lc-dragging iframe) { pointer-events: none; }

@@ -224,6 +224,7 @@ export function liveCode() {
       const audienceDownloadRoute = `${publicRoute}/download`
       const credential = `slidev-live-code-${server.config.server.port}=${randomBytes(24).toString('hex')}`
       let projects
+      let lastDeletedProject
       let steps
       let pinnedLocale = null
       let noteId = ''
@@ -542,6 +543,23 @@ export function liveCode() {
         return run
       }
 
+      function persistFolders(id, added, removed = []) {
+        if (!added.length && !removed.length) return
+        const project = projects.get(id)
+        const path = name => savedCopyPath(server.config.root, id, name)
+        flushing = flushing.then(async () => {
+          for (const name of added) {
+            if (project.folders.has(name)) await mkdir(path(name), { recursive: true, mode: 0o700 })
+          }
+          for (const name of removed) {
+            const inside = item => item === name || item.startsWith(`${name}/`)
+            if (![...project.folders, ...Object.keys(project.files)].some(inside)) {
+              await rm(path(name), { recursive: true, force: true })
+            }
+          }
+        }).catch(error => console.error('Slidev live code:', error))
+      }
+
       function flushCodeSync() {
         for (const key of dirty) {
           const [id, file] = JSON.parse(key)
@@ -731,8 +749,7 @@ export function liveCode() {
             const project = projects.get(action.project)
             if (!project || !isFolderPath(action.path) || !pathAvailable(project, action.path)) break
             project.folders.add(action.path)
-            mkdir(savedCopyPath(server.config.root, action.project, action.path), { recursive: true, mode: 0o700 })
-              .catch(error => console.error('Slidev live code:', error))
+            persistFolders(action.project, [action.path])
             return true
           }
           case 'rename': {
@@ -787,16 +804,8 @@ export function liveCode() {
               }
               if (screen.focus && inside(screen.focus.file)) screen.focus = null
             }
-            const root = server.config.root
-            flushCode().catch(() => {}).finally(async () => {
-              try {
-                for (const name of folders) await mkdir(savedCopyPath(root, action.project, moved(name)), { recursive: true, mode: 0o700 })
-                if (!isFile) await rm(savedCopyPath(root, action.project, from), { recursive: true, force: true })
-              }
-              catch (error) {
-                console.error('Slidev live code:', error)
-              }
-            })
+            flushCode().catch(() => {})
+            persistFolders(action.project, folders.map(moved), isFile ? [] : [from])
             return true
           }
           case 'delete': {
@@ -808,6 +817,9 @@ export function liveCode() {
             if ((!files.length && !folders.length) || files.some(name => Object.hasOwn(project.originals, name))
               || Object.keys(project.originals).some(inside)) break
             if (files.includes(project.initialFile)) break
+            if (lastDeletedProject) lastDeletedProject.lastDeleted = null
+            project.lastDeleted = { files: files.map(name => [name, project.files[name]]), folders }
+            lastDeletedProject = project
             for (const name of files) {
               delete project.files[name]
               project.viewLines.delete(name)
@@ -818,13 +830,30 @@ export function liveCode() {
               screen.diagnostics = screen.diagnostics.filter(item => !files.includes(item.file))
               if (files.includes(screen.file)) select(action.project, project.initialFile)
             }
-            if (folders.length) {
-              flushCode().catch(() => {}).finally(() => {
-                for (const name of folders.sort((first, second) => second.length - first.length)) {
-                  rm(savedCopyPath(server.config.root, action.project, name), { recursive: true, force: true }).catch(console.error)
-                }
-              })
+            if (!files.includes(action.path)) {
+              flushCode().catch(() => {})
+              const removed = folders.filter(name => name !== action.path).sort((a, b) => b.length - a.length)
+              persistFolders(action.project, [], [...removed, action.path])
             }
+            return true
+          }
+          case 'undo-delete': {
+            const project = projects.get(action.project)
+            if (!project?.lastDeleted) return 'explorer.undoDeleteUnavailable'
+            const { files, folders } = project.lastDeleted
+            const existingFiles = Object.keys(project.files)
+            const existingFolders = [...project.folders]
+            const occupied = path => conflicts(existingFiles, path)
+              || existingFolders.some(name => name === path || name.startsWith(`${path}/`))
+            if (files.some(([name]) => occupied(name)) || folders.some(occupied)) return 'explorer.errorExists'
+            for (const [name, text] of files) {
+              project.files[name] = text
+              markDirty(action.project, name)
+            }
+            for (const name of folders) project.folders.add(name)
+            persistFolders(action.project, folders)
+            project.lastDeleted = null
+            lastDeletedProject = null
             return true
           }
           case 'panel':
@@ -1013,7 +1042,8 @@ export function liveCode() {
             }
             return accepted ? reply(200, { ok: true }) : fail(409, 'error.busy')
           }
-          if (!action || !perform(action)) return fail(409, 'error.busy')
+          const result = action && perform(action)
+          if (result !== true) return fail(409, result || 'error.busy')
           const touched = projects.get(action.project ?? screen.project)
           if (touched) terminals.sync(action.project ?? screen.project, touched.files, touched.folders)
           if (action.type === 'select-note') revision += 1
