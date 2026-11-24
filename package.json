@@ -4,12 +4,11 @@
   "description": "A live coding dock with a built-in terminal for Slidev.",
   "type": "module",
   "files": [
-    "/*.vue",
-    "/*.mjs",
-    "/*.css",
-    "/*.py",
-    "/*.ttf",
-    "languages/",
+    "global-top.vue",
+    "vite.config.mjs",
+    "client/",
+    "server/",
+    "shared/",
     "credits.txt",
     "README.md"
   ],

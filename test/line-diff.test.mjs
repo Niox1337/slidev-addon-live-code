@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { lineChanges } from '../line-diff.mjs'
+import { lineChanges } from '../client/line-diff.mjs'
 
 test('identical text has no changes', () => {
   expect(lineChanges('one\ntwo\n', 'one\ntwo\n')).toEqual([])

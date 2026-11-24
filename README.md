@@ -149,7 +149,7 @@ export const locale = 'zh'
 
 ## 添加新语言
 
-每种语言是 `languages/` 下的一个文件，服务器和浏览器共用同一份定义。添加语言分两步：照着 `languages/c.mjs` 写一个新文件，再把它加进 `languages/index.mjs` 的 `languageList`。编辑器高亮、文件类型识别、输出里可点击的位置、新建文件的扩展名检查和 Vite 预构建都从这份定义生成，不需要改其他文件。启动时会检查必填字段，并拒绝两种语言共用同一个扩展名。
+每种语言是 `shared/languages/` 下的一个文件，服务器和浏览器共用同一份定义。添加语言分两步：照着 `shared/languages/c.mjs` 写一个新文件，再把它加进 `shared/languages/index.mjs` 的 `languageList`。编辑器高亮、文件类型识别、输出里可点击的位置、新建文件的扩展名检查和 Vite 预构建都从这份定义生成，不需要改其他文件。启动时会检查必填字段，并拒绝两种语言共用同一个扩展名。
 
 语言文件不能在顶层导入 Node 模块，因为浏览器也会加载它。需要写临时文件时，用 `prepare` 收到的 `writeFile`。
 
@@ -181,7 +181,7 @@ export default {
 | 字段 | 必填 | 说明 |
 | --- | --- | --- |
 | `id`、`label`、`extensions`、`editor.language`、`prepare` | 是 | 基本信息和运行方式 |
-| `editor.setup(monaco)` | 否 | 注册高亮。Monaco 自带的语言导入它的 `register.js`，没有的语言可以像 `languages/haskell.mjs` 那样注册 Monarch 规则 |
+| `editor.setup(monaco)` | 否 | 注册高亮。Monaco 自带的语言导入它的 `register.js`，没有的语言可以像 `shared/languages/haskell.mjs` 那样注册 Monarch 规则 |
 | `editor.optimize` | 否 | 交给 Vite 预构建的模块，和 `setup` 里导入的路径一致 |
 | `validate(options)` | 否 | 返回 `false` 时启动报错 |
 | `sourcesValid(names, options)` | 否 | 检查练习的文件组合，例如 C 至少要有一个 `.c` |
@@ -190,7 +190,7 @@ export default {
 | `compileDiagnostics(text, context)` | 否 | 把编译输出解析成 `{ file, line, column, severity, message }` 列表 |
 | `runtimeDiagnostics(text, context)` | 否 | 程序异常退出时解析运行输出，格式同上 |
 
-`prepare` 在每次运行时调用。`directory` 是这次运行的临时文件夹，源码已经按相对路径写好，运行结束后整个文件夹会被删除。`names` 是全部源码的相对路径，`resolve(name)` 返回临时文件夹里的绝对路径。`languages/shared.mjs` 里有解析诊断信息常用的 `matchFile` 和 `shorten`。
+`prepare` 在每次运行时调用。`directory` 是这次运行的临时文件夹，源码已经按相对路径写好，运行结束后整个文件夹会被删除。`names` 是全部源码的相对路径，`resolve(name)` 返回临时文件夹里的绝对路径。`shared/languages/shared.mjs` 里有解析诊断信息常用的 `matchFile` 和 `shorten`。
 
 ## 给代码笔记编排步骤
 
@@ -214,6 +214,15 @@ export const steps = [
 把讲解步骤写进 `.slidev-live-code-notes/steps/print.md`。从第 2 页打开演示时，会选中这份笔记并定位代码。面板开启后，翻到有步骤的页会在讲者侧自动备好该页的第一份代码和笔记，观众继续看课件。同一页揭晓内容时，会保留当前文件和笔记。可以用笔记栏的 **‹**、**›** 或下拉列表单独跳转笔记，再点 **定位代码** 把选中的源码分享给观众。若源码有插入或删除，`anchor` 会优先查找当前代码中的匹配行，`line` 用来处理尚未写入的代码。点 **去第 3 页** 会用 Slidev 翻到第 3 页，代码面板继续打开。
 
 ## 开发
+
+```text
+global-top.vue      Slidev 加载的入口，讲者面板和观众页
+vite.config.mjs     Slidev 加载的 Vite 配置，注册服务器插件
+client/             浏览器里的组件、样式和图标字体
+server/             开发服务器插件：运行代码、终端、自动保存、下载
+shared/             浏览器和服务器共用的语言定义和界面文字
+test/               vitest 测试
+```
 
 在插件目录运行测试。
 

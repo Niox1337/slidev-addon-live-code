@@ -3,7 +3,7 @@ import { EventEmitter } from 'node:events'
 import { readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
-import { createTerminals } from '../terminal.mjs'
+import { createTerminals } from '../server/terminal.mjs'
 
 const supportedPlatform = ['darwin', 'linux'].includes(process.platform)
 const pythonAvailable = supportedPlatform && spawnSync('python3', ['--version'], { stdio: 'ignore' }).status === 0

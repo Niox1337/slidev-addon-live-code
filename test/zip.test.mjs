@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import * as zlib from 'node:zlib'
 import { afterEach, expect, test, vi } from 'vitest'
-import { createZip } from '../zip.mjs'
+import { createZip } from '../server/zip.mjs'
 import { readZip } from './read-zip.mjs'
 
 const entries = [

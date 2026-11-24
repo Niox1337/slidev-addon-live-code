@@ -2,24 +2,24 @@
 import { useNav } from '@slidev/client'
 import { lockShortcuts } from '@slidev/client/state/storage.ts'
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue'
-import LcIcon from './LcIcon.vue'
-import { languageLabel, languageOfFile } from './file-language.mjs'
-import { browserLocale, isMac, keys, locale, serverLocale, t } from './i18n.mjs'
-import './theme.css'
+import LcIcon from './client/LcIcon.vue'
+import { languageLabel, languageOfFile } from './client/file-language.mjs'
+import { browserLocale, isMac, keys, locale, serverLocale, t } from './client/i18n.mjs'
+import './client/theme.css'
 
 const { isPresenter, isPlaying, isPrintMode, isEmbedded, currentSlideNo, queryClicks, go } = useNav()
 const hot = import.meta.hot
 const enabled = computed(() => Boolean(hot) && !isPrintMode.value && !isEmbedded.value && (isPresenter.value || isPlaying.value))
 const lazy = loader => (import.meta.env.DEV ? defineAsyncComponent(loader) : null)
-const CodeEditor = lazy(() => import('./CodeEditor.vue'))
-const PresenterNotes = lazy(() => import('./PresenterNotes.vue'))
-const FileExplorer = lazy(() => import('./FileExplorer.vue'))
-const QuickOpen = lazy(() => import('./QuickOpen.vue'))
-const OutputPanel = lazy(() => import('./OutputPanel.vue'))
-const TerminalPanel = lazy(() => import('./TerminalPanel.vue'))
-const PanelTabs = lazy(() => import('./PanelTabs.vue'))
-const DiffView = lazy(() => import('./DiffView.vue'))
-const ShortcutHelp = lazy(() => import('./ShortcutHelp.vue'))
+const CodeEditor = lazy(() => import('./client/CodeEditor.vue'))
+const PresenterNotes = lazy(() => import('./client/PresenterNotes.vue'))
+const FileExplorer = lazy(() => import('./client/FileExplorer.vue'))
+const QuickOpen = lazy(() => import('./client/QuickOpen.vue'))
+const OutputPanel = lazy(() => import('./client/OutputPanel.vue'))
+const TerminalPanel = lazy(() => import('./client/TerminalPanel.vue'))
+const PanelTabs = lazy(() => import('./client/PanelTabs.vue'))
+const DiffView = lazy(() => import('./client/DiffView.vue'))
+const ShortcutHelp = lazy(() => import('./client/ShortcutHelp.vue'))
 
 const publicEndpoint = `${import.meta.env.BASE_URL}__slidev_live_code`
 const storageKey = 'slidev-live-code:layout'

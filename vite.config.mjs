@@ -1,5 +1,5 @@
-import { languageList } from './languages/index.mjs'
-import { liveCode } from './live-code.mjs'
+import { languageList } from './shared/languages/index.mjs'
+import { liveCode } from './server/live-code.mjs'
 
 export default {
   resolve: {

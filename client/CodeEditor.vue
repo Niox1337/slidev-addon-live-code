@@ -5,7 +5,7 @@ import 'monaco-editor/editor/contrib/find/browser/findController.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { languageOfFile } from './file-language.mjs'
 import { lineChanges } from './line-diff.mjs'
-import { languageList } from './languages/index.mjs'
+import { languageList } from '../shared/languages/index.mjs'
 import { t } from './i18n.mjs'
 
 const languagesReady = Promise.all(languageList.map(language => Promise.resolve(language.editor.setup?.(monaco))

@@ -1,4 +1,4 @@
-import { languageList } from './languages/index.mjs'
+import { languageList } from '../shared/languages/index.mjs'
 
 const plain = { id: 'plaintext', monaco: 'plaintext', label: 'Text' }
 const byExtension = new Map(languageList.flatMap(language => language.extensions.map(extension => [

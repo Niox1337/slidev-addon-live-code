@@ -5,8 +5,8 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:f
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { languages } from './languages/index.mjs'
-import { normaliseLocale, translate } from './messages.mjs'
+import { languages } from '../shared/languages/index.mjs'
+import { normaliseLocale, translate } from '../shared/messages.mjs'
 import { createTerminals } from './terminal.mjs'
 import { createZip } from './zip.mjs'
 

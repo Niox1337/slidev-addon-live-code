@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { normaliseLocale, translate } from './messages.mjs'
+import { normaliseLocale, translate } from '../shared/messages.mjs'
 
 export const browserLocale = normaliseLocale(globalThis.navigator?.language) ?? 'en'
 export const serverLocale = ref(null)

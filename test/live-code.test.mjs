@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { createServer } from 'vite'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { liveCode } from '../live-code.mjs'
+import { liveCode } from '../server/live-code.mjs'
 import { readZip } from './read-zip.mjs'
 
 const publicRoute = '/__slidev_live_code'
