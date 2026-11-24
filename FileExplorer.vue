@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import LcIcon from './LcIcon.vue'
 import { languageLabel } from './file-language.mjs'
 import { t } from './i18n.mjs'
@@ -17,6 +17,9 @@ const cursor = ref('')
 const draft = ref(null)
 const pendingFocus = ref('')
 const renaming = ref(null)
+const dropTarget = ref('')
+let dragSource
+let expandTimer
 const segment = /^[A-Za-z0-9_$][\w$.-]*$/
 
 const roots = computed(() => props.projects.map(project => {
@@ -252,7 +255,12 @@ async function commitRename() {
   const { project, path, folder, key } = renaming.value
   renaming.value = null
   if (result.same) return moveTo(key)
-  const nextKey = `${project}/${result.path}`
+  moveEntry(project, path, result.path, folder)
+}
+
+function moveEntry(project, from, to, folder) {
+  const key = `${project}/${from}`
+  const nextKey = `${project}/${to}`
   if (folder) {
     for (const item of [...expanded]) {
       if (item === key || item.startsWith(`${key}/`)) {
@@ -263,8 +271,69 @@ async function commitRename() {
   }
   cursor.value = nextKey
   pendingFocus.value = nextKey
-  emit('rename', { project, from: path, to: result.path, folder })
+  emit('rename', { project, from, to, folder })
 }
+
+function startDrag(event, node) {
+  if (props.busy || !canRename(node) || renaming.value?.key === node.key) {
+    event.preventDefault()
+    return
+  }
+  dragSource = node
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('application/x-slidev-live-code-entry', node.key)
+}
+
+function canDrop(node) {
+  return dragSource && !props.busy && node.children && node.project === dragSource.project
+    && node.path !== dragSource.path && !node.path.startsWith(`${dragSource.path}/`)
+    && !node.children.has(dragSource.label)
+}
+
+function clearDropTarget() {
+  clearTimeout(expandTimer)
+  dropTarget.value = ''
+}
+
+function endDrag() {
+  dragSource = null
+  clearDropTarget()
+}
+
+function hoverDrop(event, node) {
+  if (!dragSource) return
+  event.preventDefault()
+  if (!canDrop(node)) {
+    event.dataTransfer.dropEffect = 'none'
+    clearDropTarget()
+    return
+  }
+  event.dataTransfer.dropEffect = 'move'
+  if (dropTarget.value === node.key) return
+  clearDropTarget()
+  dropTarget.value = node.key
+  if (!expanded.has(node.key)) expandTimer = setTimeout(() => expanded.add(node.key), 600)
+}
+
+function leaveDrop(event, node) {
+  if (dropTarget.value === node.key && !event.currentTarget.contains(event.relatedTarget)) clearDropTarget()
+}
+
+function dropEntry(event, node) {
+  if (!dragSource) return
+  event.preventDefault()
+  if (canDrop(node) && findNode(dragSource.key)) {
+    const { project, path, label, children } = dragSource
+    expanded.add(node.key)
+    moveEntry(project, path, node.path ? `${node.path}/${label}` : label, Boolean(children))
+  }
+  endDrag()
+}
+
+watch(() => props.busy, busy => {
+  if (busy) endDrag()
+})
+onBeforeUnmount(endDrag)
 
 async function cancelRename() {
   if (!renaming.value) return
@@ -412,9 +481,11 @@ function collapseAll() {
           'is-current': node.key === currentKey,
           'is-disabled': isDisabled(node),
           'is-renaming': renaming?.key === node.key,
+          'is-drop-target': dropTarget === node.key,
         }"
         :style="{ '--depth': depth }"
         :tabindex="node.key === activeKey ? 0 : -1"
+        :draggable="!busy && canRename(node) && renaming?.key !== node.key"
         :aria-level="depth + 1"
         :aria-expanded="node.children ? expanded.has(node.key) : undefined"
         :aria-selected="node.key === currentKey"
@@ -422,6 +493,12 @@ function collapseAll() {
         :title="node.file ? `${node.file}${isDisabled(node) ? `\n${t('quick.busy')}` : ''}` : node.label"
         @click="activate(node)"
         @focus="cursor = node.key"
+        @dragstart="startDrag($event, node)"
+        @dragend="endDrag"
+        @dragenter="hoverDrop($event, node)"
+        @dragover="hoverDrop($event, node)"
+        @dragleave="leaveDrop($event, node)"
+        @drop="dropEntry($event, node)"
       >
         <span v-for="level in depth" :key="level" class="lc-tree-guide" aria-hidden="true" />
         <LcIcon
@@ -543,7 +620,8 @@ function collapseAll() {
 .lc-tree-row:focus-visible { outline: 2px solid var(--lc-accent); outline-offset: -2px; }
 .lc-tree-row.is-root { color: var(--lc-text); font-weight: 600; }
 
-.lc-tree-row.is-current {
+.lc-tree-row.is-current,
+.lc-tree-row.is-drop-target {
   background: var(--lc-accent-soft);
   color: var(--lc-text);
 }
