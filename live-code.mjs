@@ -286,6 +286,9 @@ export function liveCode() {
             folders: [...project.folders],
             extensions: languages[project.language].extensions,
           })),
+          original: Object.hasOwn(selection().originals, screen.file) && selection().originals[screen.file] !== selection().files[screen.file]
+            ? selection().originals[screen.file]
+            : null,
           interactive: Boolean(selection().inputPrompt),
           steps: Array.from(steps.values(), ({ id, label, slide }) => ({ id, label, slide })),
           noteStep: step

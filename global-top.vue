@@ -18,6 +18,7 @@ const QuickOpen = lazy(() => import('./QuickOpen.vue'))
 const OutputPanel = lazy(() => import('./OutputPanel.vue'))
 const TerminalPanel = lazy(() => import('./TerminalPanel.vue'))
 const PanelTabs = lazy(() => import('./PanelTabs.vue'))
+const DiffView = lazy(() => import('./DiffView.vue'))
 
 const publicEndpoint = `${import.meta.env.BASE_URL}__slidev_live_code`
 const storageKey = 'slidev-live-code:layout'
@@ -71,6 +72,7 @@ const stackedDock = ref(false)
 const dragging = ref('')
 const dockFocused = ref(false)
 const savedFlash = ref(false)
+const diffOpen = ref(false)
 let savedTimer
 const quickOpen = ref()
 const tabStrip = ref()
@@ -93,6 +95,7 @@ const deckLanguage = ref(readStored(languageKey))
 const fileLanguage = computed(() => languageOfFile(screen.value?.file).label)
 const labelKey = key => (deckLanguage.value ? t(key, { language: deckLanguage.value }) : t(`${key}Any`))
 const isModified = computed(() => Boolean(currentProject.value?.modified?.includes(screen.value.file)))
+const showDiff = computed(() => diffOpen.value && isModified.value && typeof screen.value?.original === 'string')
 const modifiedIds = computed(() => new Set((screen.value?.projects ?? [])
   .flatMap(project => (project.modified ?? []).map(file => `${project.id}/${file}`))))
 const fileDiagnostics = computed(() => (screen.value?.diagnostics ?? []).filter(item => item.file === screen.value.file))
@@ -505,6 +508,10 @@ watch(() => screen.value?.projects, projects => {
   if (tabs.value.some(tab => !present.has(tab.id))) tabs.value = tabs.value.filter(tab => present.has(tab.id))
 })
 
+watch(fileId, () => {
+  diffOpen.value = false
+})
+
 watch(fileId, async id => {
   if (!isPresenter.value || !id) return
   addTab(screen.value.project, screen.value.file)
@@ -734,15 +741,36 @@ onBeforeUnmount(() => {
                 <LcIcon name="chevron-right" class="lc-crumb-sep" />
                 <span class="lc-crumb" :class="{ 'is-file': index === pathParts.length - 1 }">{{ part }}</span>
               </template>
-              <button v-if="isModified" type="button" class="lc-crumb-action" :title="t('file.resetTitle')" @click="send('reset', { project: screen.project, file: screen.file })">
+              <button
+                v-if="isModified"
+                type="button"
+                class="lc-crumb-action"
+                :aria-pressed="showDiff"
+                :title="showDiff ? t('diff.closeTitle') : t('diff.openTitle')"
+                @click="diffOpen = !showDiff"
+              >
+                <LcIcon name="diff" />
+                {{ showDiff ? t('diff.close') : t('diff.open') }}
+              </button>
+              <button v-if="isModified" type="button" class="lc-crumb-action lc-crumb-action-next" :title="t('file.resetTitle')" @click="send('reset', { project: screen.project, file: screen.file })">
                 <LcIcon name="discard" />
                 {{ t('file.reset') }}
               </button>
             </div>
 
+            <DiffView
+              v-if="showDiff"
+              class="lc-editor"
+              :file="screen.file"
+              :original="screen.original"
+              :code="screen.code"
+              @close="diffOpen = false"
+            />
             <CodeEditor
+              v-show="!showDiff"
               class="lc-editor"
               :file="fileId"
+              :original="screen.original ?? null"
               :code="screen.code"
               :line="screen.line"
               :jump="screen.jump ?? 0"
@@ -1344,6 +1372,8 @@ onBeforeUnmount(() => {
   font-weight: 500;
 }
 
+.lc-crumb-action-next { margin-left: 0; }
+.lc-crumb-action[aria-pressed="true"] { background: var(--lc-accent-soft); color: var(--lc-accent); }
 .lc-crumb-action .lc-icon { width: 14px; font-size: 14px; }
 .lc-crumb-action:hover { background: var(--lc-hover); color: var(--lc-text); }
 

@@ -4,6 +4,7 @@ import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
 import 'monaco-editor/editor/contrib/find/browser/findController.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { languageOfFile } from './file-language.mjs'
+import { lineChanges } from './line-diff.mjs'
 import { languageList } from './languages/index.mjs'
 import { t } from './i18n.mjs'
 
@@ -20,6 +21,7 @@ const props = defineProps({
   focus: { type: Object, default: null },
   diagnostics: { type: Array, default: () => [] },
   zoom: { type: Number, default: 1 },
+  original: { type: String, default: null },
 })
 const emit = defineEmits(['edit', 'scroll', 'cursor', 'run', 'focus'])
 const container = ref()
@@ -35,6 +37,8 @@ let themeObserver
 let focusDecorations
 let flashDecorations
 let problemDecorations
+let diffDecorations
+let diffTimer
 
 const presenterFont = { fontSize: 14, lineHeight: 22 }
 
@@ -234,6 +238,41 @@ function renderProblems() {
   }))
 }
 
+const diffClasses = {
+  added: 'lc-diff-added',
+  modified: 'lc-diff-modified',
+  deleted: 'lc-diff-deleted',
+}
+
+function renderDiff() {
+  if (!editor || props.readonly) return
+  if (props.original === null) {
+    diffDecorations.clear()
+    return
+  }
+  const model = editor.getModel()
+  const lastLine = model.getLineCount()
+  const style = getComputedStyle(container.value)
+  const colors = {
+    added: style.getPropertyValue('--lc-success').trim(),
+    modified: style.getPropertyValue('--lc-accent').trim(),
+    deleted: style.getPropertyValue('--lc-danger').trim(),
+  }
+  diffDecorations.set(lineChanges(props.original, model.getValue()).map(change => ({
+    range: new monaco.Range(Math.min(change.start, lastLine), 1, Math.min(change.end, lastLine), 1),
+    options: {
+      isWholeLine: true,
+      linesDecorationsClassName: `${diffClasses[change.kind]}${change.kind === 'deleted' && !change.after ? ' is-top' : ''}`,
+      overviewRuler: { color: colors[change.kind], position: monaco.editor.OverviewRulerLane.Left },
+    },
+  })))
+}
+
+function scheduleDiff() {
+  clearTimeout(diffTimer)
+  diffTimer = setTimeout(renderDiff, 120)
+}
+
 function sync(moveCursor = false) {
   if (!editor) return
   replacing = true
@@ -257,6 +296,7 @@ function sync(moveCursor = false) {
   }
   replacing = false
   if (fileChanged) renderProblems()
+  scheduleDiff()
   if (props.readonly) {
     renderFocus()
     audienceScroll()
@@ -328,6 +368,7 @@ onMounted(async () => {
   focusDecorations = editor.createDecorationsCollection()
   flashDecorations = editor.createDecorationsCollection()
   problemDecorations = editor.createDecorationsCollection()
+  diffDecorations = editor.createDecorationsCollection()
   themeObserver = new MutationObserver(() => monaco.editor.setTheme(currentTheme()))
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
   sync(props.jump > 0)
@@ -340,6 +381,7 @@ onMounted(async () => {
   })
   editor.onDidChangeModelContent(() => {
     if (!replacing) emit('edit', editor.getValue(), firstLine())
+    scheduleDiff()
   })
   editor.onDidScrollChange(({ scrollTopChanged, heightChanged, scrollHeightChanged }) => {
     if (replacing || !scrollTopChanged || heightChanged || scrollHeightChanged) return
@@ -361,7 +403,9 @@ watch(() => props.sync, () => {
   applyText(editor.getModel(), props.code)
   replacing = false
   renderProblems()
+  scheduleDiff()
 })
+watch(() => props.original, scheduleDiff)
 watch(() => [props.code, props.line], () => {
   if (props.readonly) sync()
 })
@@ -384,6 +428,7 @@ onBeforeUnmount(() => {
   clearTimeout(scrollTimer)
   clearTimeout(focusTimer)
   clearTimeout(flashTimer)
+  clearTimeout(diffTimer)
   themeObserver?.disconnect()
   editor?.dispose()
   for (const model of models.values()) model.dispose()

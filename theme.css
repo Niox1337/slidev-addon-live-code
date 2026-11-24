@@ -238,6 +238,20 @@ html.dark .lc-root {
 .monaco-editor .lc-focus-line { background: var(--lc-focus-band, rgb(42 98 214 / 0.1)); }
 .monaco-editor .lc-focus-selection { background: var(--lc-focus-band-strong, rgb(42 98 214 / 0.18)); }
 .monaco-editor .lc-focus-gutter { background: var(--lc-focus-bar, #2a62d6); width: 4px !important; margin-left: 4px; border-radius: 2px; }
+.monaco-editor .lc-diff-added,
+.monaco-editor .lc-diff-modified { width: 3px !important; margin-left: 3px; }
+.monaco-editor .lc-diff-added { background: var(--lc-success); }
+.monaco-editor .lc-diff-modified { background: var(--lc-accent); }
+.monaco-editor .lc-diff-deleted::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 2px;
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  border-left: 6px solid var(--lc-danger);
+}
+.monaco-editor .lc-diff-deleted.is-top::after { top: -4px; bottom: auto; }
 .monaco-editor .lc-changed-line { animation: lc-changed 1.6s var(--lc-ease, ease-out) both; }
 .monaco-editor .lc-error-line { background: var(--lc-error-band, rgb(194 45 41 / 0.08)); }
 .monaco-editor .lc-warning-line { background: var(--lc-warning-band, rgb(163 95 0 / 0.08)); }
