@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { languages } from '../shared/languages/index.mjs'
 import { normaliseLocale, translate } from '../shared/messages.mjs'
@@ -379,7 +379,7 @@ export function liveCode() {
           if (run.stopped) return
           const inside = name => {
             const path = resolve(directory, name)
-            if (!path.startsWith(`${directory}/`)) throw new Error(`Path outside the build folder: ${name}`)
+            if (!path.startsWith(`${directory}${sep}`)) throw new Error(`Path outside the build folder: ${name}`)
             return path
           }
           const plan = await language.prepare({
