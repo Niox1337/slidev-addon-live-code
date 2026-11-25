@@ -2,7 +2,7 @@
 
 [English](README.md) | 中文
 
-给 [Slidev](https://sli.dev) 讲者模式用的现场编程面板。在课件旁边编辑、运行和调试 Java、C 和 Haskell 练习，并由讲者决定观众什么时候看到代码。
+给 [Slidev](https://sli.dev) 讲者模式用的现场编程面板。在课件旁边编辑、运行和调试 Java、C、C++、Rust、Go、Zig、Haskell、Python、JavaScript 或 TypeScript 练习，并由讲者决定观众什么时候看到代码。
 
 - **编辑器**：基于 Monaco，有标签页、快速打开、自动保存，并能和初始代码对比
 - **运行**：在本机编译运行，错误直接标在出错的行上
@@ -40,7 +40,14 @@
 | --- | --- |
 | Java | JDK，`PATH` 中有 `javac` 和 `java` |
 | C | 能以 `cc` 调用的 GCC 或 Clang，或用 `compiler` 指定 |
+| C++ | 能以 `c++` 调用的 GCC 或 Clang，或用 `compiler` 指定 |
+| Rust | `PATH` 中有 `rustc`，不需要 Cargo |
+| Go | Go 1.22 或更新，`PATH` 中有 `go` |
+| Zig | `PATH` 中有 `zig` |
 | Haskell | GHC，`PATH` 中有 `ghc` |
+| Python | 以 `python3` 调用的 Python 3（Windows 上是 `python`），或用 `interpreter` 指定 |
+| JavaScript | 无需额外安装，使用运行 Slidev 的 Node.js |
+| TypeScript | Node.js 22.13 或更新。只有开启 `typecheck` 时才需要 `tsc` |
 
 > [!NOTE]
 > Windows 支持还在试验阶段。`node-pty` 需要在本机编译原生模块，所以没有默认安装。在课件目录运行 `npm install node-pty`，然后重启 Slidev。
@@ -114,7 +121,7 @@ export default [
 | --- | --- |
 | `id` | 唯一标识，也用作保存和笔记文件夹的名字 |
 | `label` | 文件列表里显示的名字 |
-| `language` | `'java'`（默认）、`'c'` 或 `'haskell'` |
+| `language` | `'java'`（默认）、`'c'`、`'cpp'`、`'rust'`、`'go'`、`'zig'`、`'haskell'`、`'python'`、`'javascript'` 或 `'typescript'` |
 | `directory` | 递归读取源码的文件夹 |
 | `loadFiles()` | 代替 `directory`，返回 `{ 'path/File.java': 源码 }` |
 | `initialFile` | 最先打开的文件，相对于 `directory`。默认按路径排序的第一份 |
@@ -135,6 +142,39 @@ export default [
 
 开启 sanitizer 时，数组越界、空指针和整数溢出会标在出错的行上。标准输出不经缓冲，提示符在程序等待输入前就会出现。
 
+### C++ 选项
+
+选项和行为与 C 相同。`.cpp`、`.cc` 和 `.cxx` 文件一起编译，默认 `flags` 使用 `-std=c++20`，默认 `compiler` 是 `'c++'`。`.h` 文件在 C++ 练习里按 C++ 高亮，在 C 练习里按 C 高亮。
+
+### Rust 选项
+
+`rustc` 编译入口文件，其他文件通过 `mod` 声明引入。
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `main` | `'main.rs'` | 入口文件 |
+| `edition` | `'2024'` | Rust edition |
+| `flags` | `[]` | 额外的 `rustc` 参数 |
+
+panic 会标在出错的行上。
+
+### Go 选项
+
+整个练习作为一个 `main` 包构建。没有 `go.mod` 时，运行时会生成一个名为 `livecode` 的模块。
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `flags` | `[]` | 额外的 `go build` 参数 |
+
+### Zig 选项
+
+`zig build-exe` 以 Debug 模式编译入口文件，其他文件通过 `@import` 引入。
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `main` | `'main.zig'` | 入口文件 |
+| `flags` | `[]` | 额外的 `zig build-exe` 参数 |
+
 ### Haskell 选项
 
 先用 GHC 做类型检查，再解释运行 `main`，不生成可执行文件。`Data/Stack.hs` 对应模块 `Data.Stack`。
@@ -144,6 +184,25 @@ export default [
 | `main` | `'Main.hs'`，没有时用 `initialFile` | 入口文件 |
 | `compiler` | `'ghc'` | GHC 命令 |
 | `flags` | `[]` | 额外的 GHC 参数，例如 `['-Wall']` |
+
+### Python 选项
+
+先检查所有 `.py` 文件的语法，再以无缓冲方式运行入口文件。Traceback 会标在它提到的行上。
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `main` | `'main.py'`，没有时用 `initialFile` | 入口文件 |
+| `interpreter` | `'python3'`，Windows 上是 `'python'` | Python 命令，例如 `'python3.13'` |
+
+### JavaScript 和 TypeScript 选项
+
+先由 Node.js 检查每个文件的语法，再运行入口文件。TypeScript 靠 Node 的类型擦除运行，所以文件之间的 import 要写 `.ts` 后缀，例如 `import { add } from './math.ts'`。
+
+| 选项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `main` | `'main.js'` 或 `'main.mjs'`，TypeScript 为 `'main.ts'` 或 `'main.mts'`，没有时用 `initialFile` | 入口文件 |
+| `args` | `[]` | 额外的 Node.js 参数 |
+| `typecheck` | `false` | 仅 TypeScript。`true` 会在每次运行前执行 `tsc --noEmit --strict`，字符串表示 `tsc` 命令 |
 
 ### 界面语言
 
@@ -212,7 +271,7 @@ export const locale = 'zh' // 或 'en'
 | 还原 | **还原** 恢复单个文件的初始代码 |
 
 - 课件里的原始文件不会被改写，也不能删除
-- 新文件带起始内容：Java 的类、C 的 include guard、Haskell 的模块声明
+- 新文件带起始内容，例如 Java 的类、C 和 C++ 的 include guard、Haskell 的模块声明、Go 的 `package main`
 - 会让练习无法运行的改名不会生效，例如 C 练习里不再有 `.c` 文件
 - 给 Java 主类文件改名不会改 `mainClass`，需要同时改类名
 - 要全部恢复，删除 `.slidev-live-code-saves` 后重启。可以把它加进 `.gitignore`
@@ -357,7 +416,7 @@ npm install
 npm test
 ```
 
-测试覆盖行差异、ZIP 打包、终端会话，以及针对临时课件的 HTTP 接口。CI 在 Ubuntu 和 macOS 上运行。
+测试覆盖行差异、ZIP 打包、终端会话、HTTP 接口，并在临时课件里真实运行每种语言。缺少工具链的语言会被跳过。CI 会安装全部工具链，在 Ubuntu 和 macOS 上运行。
 
 ## 致谢
 

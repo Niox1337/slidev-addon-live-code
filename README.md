@@ -2,7 +2,7 @@
 
 English | [中文](README.zh-CN.md)
 
-A live coding panel for [Slidev](https://sli.dev) presenter mode. Edit, run and debug Java, C and Haskell exercises next to your slides, and choose when the audience sees the code.
+A live coding panel for [Slidev](https://sli.dev) presenter mode. Edit, run and debug exercises in Java, C, C++, Rust, Go, Zig, Haskell, Python, JavaScript or TypeScript next to your slides, and choose when the audience sees the code.
 
 - **Editor**: Monaco with tabs, quick open, autosave and a diff against the starter code
 - **Run**: compile and run on the local machine, with errors marked on the offending lines
@@ -40,7 +40,14 @@ Install only the toolchains your exercises use. A deck with only Java exercises 
 | --- | --- |
 | Java | JDK, with `javac` and `java` on `PATH` |
 | C | GCC or Clang available as `cc`, or set `compiler` |
+| C++ | GCC or Clang available as `c++`, or set `compiler` |
+| Rust | `rustc` on `PATH`. Cargo is not used |
+| Go | Go 1.22 or newer, with `go` on `PATH` |
+| Zig | `zig` on `PATH` |
 | Haskell | GHC, with `ghc` on `PATH` |
+| Python | Python 3 as `python3`, or `python` on Windows, or set `interpreter` |
+| JavaScript | Nothing extra. Runs on the Node.js that runs Slidev |
+| TypeScript | Node.js 22.13 or newer. `tsc` only with `typecheck` |
 
 > [!NOTE]
 > Windows support is experimental. `node-pty` compiles a native module, so it is not installed by default. Run `npm install node-pty` in the deck folder and restart Slidev.
@@ -114,7 +121,7 @@ The first exercise opens first. Each one appears as a folder in the file explore
 | --- | --- |
 | `id` | Unique id. Also names the save and notes folders |
 | `label` | Name shown in the file explorer |
-| `language` | `'java'` (default), `'c'` or `'haskell'` |
+| `language` | `'java'` (default), `'c'`, `'cpp'`, `'rust'`, `'go'`, `'zig'`, `'haskell'`, `'python'`, `'javascript'` or `'typescript'` |
 | `directory` | Folder read recursively for source files |
 | `loadFiles()` | Alternative to `directory`. Returns `{ 'path/File.java': source }` |
 | `initialFile` | File opened first, relative to `directory`. Defaults to the first file by path |
@@ -135,6 +142,39 @@ All `.c` files compile together, with `-I.` so includes resolve from the exercis
 
 With the sanitizers on, out-of-bounds access, null pointers and integer overflow are marked on the line that caused them. Standard output is unbuffered, so prompts appear before the program waits.
 
+### C++ options
+
+Same options and behavior as C. `.cpp`, `.cc` and `.cxx` files compile together and the default `flags` use `-std=c++20`. The default `compiler` is `'c++'`. A `.h` file is highlighted as C++ in a C++ exercise and as C in a C exercise.
+
+### Rust options
+
+`rustc` compiles the entry file. Other files join through `mod` declarations.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `main` | `'main.rs'` | Entry file |
+| `edition` | `'2024'` | Rust edition |
+| `flags` | `[]` | Extra `rustc` flags |
+
+Panics are marked on the line that panicked.
+
+### Go options
+
+The exercise builds as one `main` package. Without a `go.mod`, a module named `livecode` is created for the run.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `flags` | `[]` | Extra `go build` flags |
+
+### Zig options
+
+`zig build-exe` compiles the entry file in Debug mode. Other files join through `@import`.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `main` | `'main.zig'` | Entry file |
+| `flags` | `[]` | Extra `zig build-exe` flags |
+
 ### Haskell options
 
 GHC type checks the exercise, then interprets `main` without producing an executable. `Data/Stack.hs` resolves as module `Data.Stack`.
@@ -144,6 +184,25 @@ GHC type checks the exercise, then interprets `main` without producing an execut
 | `main` | `'Main.hs'`, else `initialFile` | Entry module file |
 | `compiler` | `'ghc'` | GHC command |
 | `flags` | `[]` | Extra GHC flags, for example `['-Wall']` |
+
+### Python options
+
+All `.py` files are checked for syntax errors first, then the entry file runs unbuffered. Tracebacks are marked on the lines they name.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `main` | `'main.py'`, else `initialFile` | Entry file |
+| `interpreter` | `'python3'`, or `'python'` on Windows | Python command, for example `'python3.13'` |
+
+### JavaScript and TypeScript options
+
+Node.js checks every file for syntax errors, then runs the entry file. TypeScript runs through Node's type stripping, so imports between files need the `.ts` extension, for example `import { add } from './math.ts'`.
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `main` | `'main.js'` or `'main.mjs'`, TypeScript `'main.ts'` or `'main.mts'`, else `initialFile` | Entry file |
+| `args` | `[]` | Extra Node.js flags |
+| `typecheck` | `false` | TypeScript only. `true` runs `tsc --noEmit --strict` before each run. A string names the `tsc` command |
 
 ### Interface language
 
@@ -212,7 +271,7 @@ A suggestion box opens while you type in the presenter editor, like in an IDE.
 | Revert | **Revert** restores the starter code of one file |
 
 - Original files in the deck are never modified and cannot be deleted
-- New files start from a template: a Java class, a C include guard or a Haskell module header
+- New files start from a template, for example a Java class, a C or C++ include guard, a Haskell module header or a Go `package main`
 - A rename that would break the exercise is refused, for example a C exercise without any `.c` file
 - Renaming the Java main class file does not change `mainClass`. Rename the class too
 - To reset everything, delete `.slidev-live-code-saves` and restart. Consider adding it to `.gitignore`
@@ -357,7 +416,7 @@ npm install
 npm test
 ```
 
-The tests cover the line diff, the ZIP writer, terminal sessions and the HTTP routes against a temporary deck. CI runs them on Ubuntu and macOS.
+The tests cover the line diff, the ZIP writer, terminal sessions, the HTTP routes and a real run of every language against a temporary deck. A language whose toolchain is missing is skipped. CI installs all toolchains and runs on Ubuntu and macOS.
 
 ## Credits
 
