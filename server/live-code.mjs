@@ -371,6 +371,7 @@ export function liveCode() {
       async function execute(run, { language: languageId, options, inputPrompt, files }) {
         const language = languages[languageId]
         let directory
+        let toolchain = language.toolchain
         const startedAt = Date.now()
         try {
           directory = await mkdtemp(join(tmpdir(), 'slidev-live-code-'))
@@ -398,6 +399,7 @@ export function liveCode() {
               await writeFile(path, text, 'utf8')
             },
           })
+          toolchain = plan.toolchain ?? toolchain
           if (run.stopped) return
 
           const context = { files, directory }
@@ -430,7 +432,7 @@ export function liveCode() {
         catch (error) {
           screen.phase = 'error'
           append(`${error.code === 'ENOENT'
-            ? t('server.noToolchain', { tools: language.toolchain })
+            ? t('server.noToolchain', { tools: toolchain })
             : t('server.startFailed', { language: language.label })}\n`, 'system')
         }
         finally {

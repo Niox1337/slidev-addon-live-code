@@ -4,6 +4,7 @@ export const languageList = [
   { id: 'java', label: 'Java', extensions: ['.java'], monaco: 'java', optimize: [monacoRegister('java')], load: () => import('./java.mjs') },
   { id: 'c', label: 'C', extensions: ['.c', '.h'], monaco: 'c', optimize: [monacoRegister('cpp')], load: () => import('./c.mjs') },
   { id: 'haskell', label: 'Haskell', extensions: ['.hs'], monaco: 'haskell', load: () => import('./haskell.mjs') },
+  { id: 'python', label: 'Python', extensions: ['.py'], monaco: 'python', optimize: [monacoRegister('python')], load: () => import('./python.mjs') },
 ]
 
 for (const language of languageList) {
