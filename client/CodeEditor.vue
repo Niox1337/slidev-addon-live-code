@@ -22,6 +22,7 @@ const props = defineProps({
   diagnostics: { type: Array, default: () => [] },
   zoom: { type: Number, default: 1 },
   original: { type: String, default: null },
+  language: { type: String, default: null },
 })
 const emit = defineEmits(['edit', 'scroll', 'cursor', 'run', 'focus'])
 const container = ref()
@@ -135,12 +136,12 @@ function fontOptions() {
 }
 
 function editorLabel() {
-  const { label, id } = languageOfFile(props.file)
+  const { label, id } = languageOfFile(props.file, props.language)
   return id === 'plaintext' ? t('editor.labelAny') : t('editor.label', { language: label })
 }
 
 function fileModel() {
-  if (!models.has(props.file)) models.set(props.file, monaco.editor.createModel(props.code, languageOfFile(props.file).monaco))
+  if (!models.has(props.file)) models.set(props.file, monaco.editor.createModel(props.code, languageOfFile(props.file, props.language).monaco))
   return models.get(props.file)
 }
 

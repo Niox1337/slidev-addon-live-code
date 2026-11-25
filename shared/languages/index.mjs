@@ -16,11 +16,9 @@ for (const language of languageList) {
   if (problems.length) throw new Error(`Live code language ${language.id ?? '?'} has invalid fields: ${problems.join(', ')}`)
 }
 
-const owners = new Map()
 for (const language of languageList) {
-  for (const extension of language.extensions) {
-    if (owners.has(extension)) throw new Error(`Extension ${extension} belongs to both ${owners.get(extension)} and ${language.id}.`)
-    owners.set(extension, language.id)
+  if (new Set(language.extensions).size !== language.extensions.length) {
+    throw new Error(`Live code language ${language.id} lists an extension twice.`)
   }
 }
 

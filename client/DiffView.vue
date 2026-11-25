@@ -8,6 +8,7 @@ const props = defineProps({
   file: { type: String, required: true },
   original: { type: String, required: true },
   code: { type: String, required: true },
+  language: { type: String, default: null },
 })
 const emit = defineEmits(['close'])
 const container = ref()
@@ -28,7 +29,7 @@ function sideBySide() {
 }
 
 function setModels() {
-  const language = languageOfFile(props.file).monaco
+  const language = languageOfFile(props.file, props.language).monaco
   const previous = [originalModel, currentModel]
   originalModel = monaco.editor.createModel(props.original, language)
   currentModel = monaco.editor.createModel(props.code, language)

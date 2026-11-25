@@ -98,7 +98,7 @@ const visible = computed(() => enabled.value && Boolean(screen.value?.visible))
 const fileId = computed(() => screen.value && `${screen.value.project}/${screen.value.file}`)
 const currentProject = computed(() => screen.value?.projects?.find(project => project.id === screen.value.project))
 const deckLanguage = ref(readStored(languageKey))
-const fileLanguage = computed(() => languageOfFile(screen.value?.file).label)
+const fileLanguage = computed(() => languageOfFile(screen.value?.file, screen.value?.language).label)
 const labelKey = key => (deckLanguage.value ? t(key, { language: deckLanguage.value }) : t(`${key}Any`))
 const isModified = computed(() => Boolean(currentProject.value?.modified?.includes(screen.value.file)))
 const showDiff = computed(() => diffOpen.value && isModified.value && typeof screen.value?.original === 'string')
@@ -853,6 +853,7 @@ onBeforeUnmount(() => {
               :file="screen.file"
               :original="screen.original"
               :code="screen.code"
+              :language="screen.language"
               @close="diffOpen = false"
             />
             <CodeEditor
@@ -861,6 +862,7 @@ onBeforeUnmount(() => {
               :file="fileId"
               :original="screen.original ?? null"
               :code="screen.code"
+              :language="screen.language"
               :line="screen.line"
               :jump="screen.jump ?? 0"
               :sync="screen.sync ?? 0"
@@ -1053,6 +1055,7 @@ onBeforeUnmount(() => {
             class="lc-audience-editor"
             :file="fileId"
             :code="screen.code"
+            :language="screen.language"
             :line="screen.line"
             :jump="screen.jump ?? 0"
             :focus="fileFocus"

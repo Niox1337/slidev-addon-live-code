@@ -271,6 +271,7 @@ export function liveCode() {
         ...screen,
         revision,
         label: selection().label,
+        language: selection().language,
         code: selection().files[screen.file],
         awaitingInput: awaitingInput(),
       })
