@@ -5,6 +5,7 @@ export const languageList = [
   { id: 'c', label: 'C', extensions: ['.c', '.h'], monaco: 'c', optimize: [monacoRegister('cpp')], load: () => import('./c.mjs') },
   { id: 'cpp', label: 'C++', extensions: ['.cpp', '.cc', '.cxx', '.hpp', '.hh', '.h'], monaco: 'cpp', optimize: [monacoRegister('cpp')], load: () => import('./cpp.mjs') },
   { id: 'rust', label: 'Rust', extensions: ['.rs'], monaco: 'rust', optimize: [monacoRegister('rust')], load: () => import('./rust.mjs') },
+  { id: 'go', label: 'Go', extensions: ['.go'], monaco: 'go', optimize: [monacoRegister('go')], load: () => import('./go.mjs') },
   { id: 'haskell', label: 'Haskell', extensions: ['.hs'], monaco: 'haskell', load: () => import('./haskell.mjs') },
   { id: 'python', label: 'Python', extensions: ['.py'], monaco: 'python', optimize: [monacoRegister('python')], load: () => import('./python.mjs') },
   { id: 'javascript', label: 'JavaScript', extensions: ['.js', '.mjs', '.cjs'], monaco: 'javascript', optimize: [monacoRegister('javascript')], load: () => import('./javascript.mjs') },

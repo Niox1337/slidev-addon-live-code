@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -155,9 +155,10 @@ async function loadDeck(root) {
         : `Each ${language.label} project needs a unique id and label, and valid options.`)
     }
 
+    const sourceDirectory = loadFiles ? undefined : resolve(root, directory)
     const files = loadFiles
       ? await loadFiles()
-      : Object.fromEntries(await readSourceFiles(resolve(root, directory), language.extensions))
+      : Object.fromEntries(await readSourceFiles(sourceDirectory, language.extensions))
     const names = Object.keys(files).sort()
     const initialFile = project.initialFile ?? names[0]
     if (!Object.hasOwn(files, initialFile)
@@ -176,6 +177,7 @@ async function loadDeck(root) {
       label,
       language: languageId,
       options: project,
+      sourceDirectory,
       files,
       originals,
       folders,
@@ -368,13 +370,13 @@ export function liveCode() {
         })
       }
 
-      async function execute(run, { language: languageId, options, inputPrompt, files }) {
+      async function execute(run, { language: languageId, options, inputPrompt, files, sourceDirectory }) {
         const language = languages[languageId]
         let directory
         let toolchain = language.toolchain
         const startedAt = Date.now()
         try {
-          directory = await mkdtemp(join(tmpdir(), 'slidev-live-code-'))
+          directory = await mkdtemp(join(await realpath(tmpdir()), 'slidev-live-code-'))
           buildDirectories.add(directory)
           const names = Object.keys(files)
           await Promise.all(names.map(async name => {
@@ -393,6 +395,7 @@ export function liveCode() {
             options,
             names,
             resolve: inside,
+            readProjectFile: sourceDirectory && (name => readOptional(join(sourceDirectory, name))),
             writeFile: async (name, text) => {
               const path = inside(name)
               await mkdir(dirname(path), { recursive: true })
