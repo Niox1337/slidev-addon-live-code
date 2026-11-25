@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { loadLanguage } from '../shared/languages/index.mjs'
+import rust from '../shared/languages/rust.mjs'
 
-const { compileDiagnostics, runtimeDiagnostics } = await loadLanguage('rust')
+const { compileDiagnostics, runtimeDiagnostics } = rust
 
 describe('Rust compile diagnostics', () => {
   const context = { files: { 'main.rs': '', 'lesson.rs': '' } }

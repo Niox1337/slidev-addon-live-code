@@ -274,14 +274,14 @@ export const steps = [
 | 部分 | 位置 | 何时加载 |
 | --- | --- | --- |
 | 元信息 | `index.mjs` 的 `languageList` 里的一项 | 总是加载，体积很小 |
-| 定义 | 单独的模块，例如 `lua.mjs` | 只有演示文稿里有项目用到这种语言时 |
+| 定义 | 以 id 命名的模块，例如 `lua.mjs` | 只有演示文稿里有项目用到这种语言时 |
 
 1. 复制 `shared/languages/c.mjs` 为新模块。
 2. 在 `languageList` 里加一项。
 
 ```js
 // shared/languages/index.mjs
-{ id: 'lua', label: 'Lua', extensions: ['.lua'], monaco: 'lua', optimize: [monacoRegister('lua')], load: () => import('./lua.mjs') },
+{ id: 'lua', label: 'Lua', extensions: ['.lua'], monaco: 'lua', optimize: [monacoRegister('lua')] },
 ```
 
 ```js
@@ -306,7 +306,6 @@ export default {
 | `extensions` | 这种语言的源码文件。两种语言可以共用一个扩展名，例如 `.h`，以项目的语言为准 |
 | `monaco` | 高亮用的 Monaco 语言 id |
 | `optimize` | 交给 Vite 预构建的模块，和 `setupEditor` 一致 |
-| `load` | 导入定义模块 |
 
 定义字段，除 `prepare` 外都可选：
 

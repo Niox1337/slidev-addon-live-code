@@ -12,6 +12,7 @@ const scanDelay = 200
 const scanEntryLimit = 2000
 const scanDepthLimit = 8
 const scanFileLimit = 200_000
+const ptyPackage = 'node-pty'
 let windowsPty
 
 export function createTerminals({ message, accept, onChange }) {
@@ -163,7 +164,7 @@ export function createTerminals({ message, accept, onChange }) {
 
     const env = { ...process.env, TERM: 'xterm-256color', COLORTERM: 'truecolor', TERM_PROGRAM: 'slidev-live-code' }
     if (process.platform === 'win32') {
-      const pty = await (windowsPty ??= import('node-pty').catch(() => null))
+      const pty = await (windowsPty ??= import(ptyPackage).catch(() => null))
       if (session.closed) return
       if (!pty) {
         record(session, `\r\n${message('terminal.noWindowsPty')}\r\n`)

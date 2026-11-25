@@ -274,14 +274,14 @@ A language has two parts in `shared/languages/`. Both the server and the browser
 | Part | Where | Loaded |
 | --- | --- | --- |
 | Metadata | One entry in `languageList` in `index.mjs` | Always, it is small |
-| Definition | Its own module, for example `lua.mjs` | Only when a project in the deck uses the language |
+| Definition | A module named after the id, for example `lua.mjs` | Only when a project in the deck uses the language |
 
 1. Copy `shared/languages/c.mjs` to a new module.
 2. Add an entry to `languageList`.
 
 ```js
 // shared/languages/index.mjs
-{ id: 'lua', label: 'Lua', extensions: ['.lua'], monaco: 'lua', optimize: [monacoRegister('lua')], load: () => import('./lua.mjs') },
+{ id: 'lua', label: 'Lua', extensions: ['.lua'], monaco: 'lua', optimize: [monacoRegister('lua')] },
 ```
 
 ```js
@@ -306,7 +306,6 @@ Metadata fields, all required except `optimize`:
 | `extensions` | Source files of the language. Two languages may share one, like `.h`. The project's language wins |
 | `monaco` | Monaco language id used for highlighting |
 | `optimize` | Modules for Vite to pre-bundle, matching `setupEditor` |
-| `load` | Imports the definition module |
 
 Definition fields, all optional except `prepare`:
 

@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, readFile, readdir, realpath, rename, rm, writeFile } fr
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { loadLanguage } from '../shared/languages/index.mjs'
+import { createLanguageLoader } from '../shared/languages/index.mjs'
 import { normaliseLocale, translate } from '../shared/messages.mjs'
 import { createTerminals } from './terminal.mjs'
 import { createZip } from './zip.mjs'
@@ -133,6 +133,8 @@ async function applyRenames(root, id, files, extensions) {
   return moved
 }
 
+const definitions = new URL('../shared/languages/', import.meta.url)
+const loadLanguage = createLanguageLoader(id => import(new URL(`${id}.mjs`, definitions).href))
 const languages = {}
 
 async function loadDeck(root) {

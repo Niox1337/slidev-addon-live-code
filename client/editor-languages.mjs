@@ -1,5 +1,5 @@
 import * as monaco from 'monaco-editor/editor/editor.api.js'
-import { loadLanguage } from '../shared/languages/index.mjs'
+import { loadLanguage } from './language-loader.mjs'
 
 const ready = new Map()
 

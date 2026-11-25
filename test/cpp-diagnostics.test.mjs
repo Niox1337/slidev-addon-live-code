@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
-import { loadLanguage } from '../shared/languages/index.mjs'
+import cpp from '../shared/languages/cpp.mjs'
 
-const { compileDiagnostics, runtimeDiagnostics } = await loadLanguage('cpp')
+const { compileDiagnostics, runtimeDiagnostics } = cpp
 
 describe('C++ compile diagnostics', () => {
   test('parses a Clang error in an included header', () => {
