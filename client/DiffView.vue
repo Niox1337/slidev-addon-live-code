@@ -1,6 +1,7 @@
 <script setup>
 import * as monaco from 'monaco-editor/editor/editor.api.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { createLanguageModel } from './editor-languages.mjs'
 import { languageOfFile } from './file-language.mjs'
 import { t } from './i18n.mjs'
 
@@ -29,10 +30,10 @@ function sideBySide() {
 }
 
 function setModels() {
-  const language = languageOfFile(props.file, props.language).monaco
+  const language = languageOfFile(props.file, props.language)
   const previous = [originalModel, currentModel]
-  originalModel = monaco.editor.createModel(props.original, language)
-  currentModel = monaco.editor.createModel(props.code, language)
+  originalModel = createLanguageModel(props.original, language)
+  currentModel = createLanguageModel(props.code, language)
   diffEditor.setModel({ original: originalModel, modified: currentModel })
   for (const model of previous) model?.dispose()
 }

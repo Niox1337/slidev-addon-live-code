@@ -269,47 +269,60 @@ Write the step notes in `.slidev-live-code-notes/steps/print.md`.
 
 ## Adding a language
 
-Each language is one file in `shared/languages/`, loaded by both the server and the browser.
+A language has two parts in `shared/languages/`. Both the server and the browser load them.
 
-1. Copy `shared/languages/c.mjs` to a new file.
-2. Add it to `languageList` in `shared/languages/index.mjs`.
+| Part | Where | Loaded |
+| --- | --- | --- |
+| Metadata | One entry in `languageList` in `index.mjs` | Always, it is small |
+| Definition | Its own module, for example `lua.mjs` | Only when a project in the deck uses the language |
 
-Highlighting, file detection, clickable locations, new file templates and Vite pre-bundling all come from this definition. Language files must not import Node modules at the top level.
+1. Copy `shared/languages/c.mjs` to a new module.
+2. Add an entry to `languageList`.
 
 ```js
+// shared/languages/index.mjs
+{ id: 'lua', label: 'Lua', extensions: ['.lua'], monaco: 'lua', optimize: [monacoRegister('lua')], load: () => import('./lua.mjs') },
+```
+
+```js
+// shared/languages/lua.mjs
 export default {
-  id: 'python',
-  label: 'Python',
-  extensions: ['.py'],
-  editor: {
-    language: 'python',
-    optimize: ['monaco-editor/languages/definitions/python/register.js'],
-    setup: () => import('monaco-editor/languages/definitions/python/register.js'),
-  },
-  toolchain: 'python3',
+  toolchain: 'lua',
+  setupEditor: () => import('monaco-editor/languages/definitions/lua/register.js'),
   template: path => '',
   prepare({ directory, options, names, writeFile, resolve }) {
-    return { run: ['python3', ['-u', options.main ?? 'main.py']], env: {} }
+    return { run: ['lua', [options.main ?? 'main.lua']], env: {} }
   },
   compileDiagnostics: (text, { files }) => [],
   runtimeDiagnostics: (text, { files }) => [],
 }
 ```
 
-| Field | Required | Description |
-| --- | --- | --- |
-| `id`, `label`, `extensions`, `editor.language`, `prepare` | Yes | Identity and how to run |
-| `editor.setup(monaco)` | No | Registers highlighting. See `haskell.mjs` for a custom Monarch grammar |
-| `editor.optimize` | No | Modules for Vite to pre-bundle, matching `setup` |
-| `toolchain` | No | Command name shown when it is missing |
-| `validate(options)` | No | Return `false` to reject the exercise options |
-| `sourcesValid(names, options)` | No | Checks the file set, for example at least one `.c` |
-| `template(path)` | No | Contents of a new file |
-| `compileTimeout` | No | Milliseconds, default 30000 |
-| `compileDiagnostics(text, context)` | No | Parses compiler output into `{ file, line, column, severity, message }` |
-| `runtimeDiagnostics(text, context)` | No | Same, for output of a crashed program |
+Metadata fields, all required except `optimize`:
 
-`prepare` runs before every run. `directory` is the temporary run folder with all sources written, `names` lists their paths and `resolve(name)` gives an absolute path. Return `compile: [command, args]` to add a compile step. `shared/languages/shared.mjs` has the `matchFile` and `shorten` helpers.
+| Field | Description |
+| --- | --- |
+| `id`, `label` | Name used in `live-code.config.mjs` and shown in the panel |
+| `extensions` | Source files of the language. Two languages may share one, like `.h`. The project's language wins |
+| `monaco` | Monaco language id used for highlighting |
+| `optimize` | Modules for Vite to pre-bundle, matching `setupEditor` |
+| `load` | Imports the definition module |
+
+Definition fields, all optional except `prepare`:
+
+| Field | Description |
+| --- | --- |
+| `prepare(context)` | Returns how to run, see below |
+| `setupEditor(monaco)` | Registers highlighting. See `haskell.mjs` for a custom Monarch grammar |
+| `toolchain` | Command name shown when it is missing |
+| `validate(options)` | Return `false` to reject the exercise options |
+| `sourcesValid(names, options)` | Checks the file set, for example at least one `.c` |
+| `template(path)` | Contents of a new file |
+| `compileTimeout` | Milliseconds, default 30000 |
+| `compileDiagnostics(text, context)` | Parses compiler output into `{ file, line, column, severity, message }` |
+| `runtimeDiagnostics(text, context)` | Same, for output of a crashed program |
+
+`prepare` runs before every run. `directory` is the temporary run folder with all sources written, `names` lists their paths and `resolve(name)` gives an absolute path. Return `compile: [command, args]` to add a compile step. `shared/languages/shared.mjs` has the `matchFile` and `shorten` helpers. Definition modules must not import Node modules at the top level.
 
 ## Development
 

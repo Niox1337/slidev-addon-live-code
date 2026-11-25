@@ -269,47 +269,60 @@ export const steps = [
 
 ## 添加新语言
 
-每种语言是 `shared/languages/` 下的一个文件，服务器和浏览器共用。
+每种语言在 `shared/languages/` 里分两部分，服务器和浏览器都会加载。
 
-1. 复制 `shared/languages/c.mjs` 为新文件。
-2. 把它加进 `shared/languages/index.mjs` 的 `languageList`。
+| 部分 | 位置 | 何时加载 |
+| --- | --- | --- |
+| 元信息 | `index.mjs` 的 `languageList` 里的一项 | 总是加载，体积很小 |
+| 定义 | 单独的模块，例如 `lua.mjs` | 只有演示文稿里有项目用到这种语言时 |
 
-高亮、文件类型识别、可点击的位置、新建文件的模板和 Vite 预构建都从这份定义生成。语言文件不能在顶层导入 Node 模块。
+1. 复制 `shared/languages/c.mjs` 为新模块。
+2. 在 `languageList` 里加一项。
 
 ```js
+// shared/languages/index.mjs
+{ id: 'lua', label: 'Lua', extensions: ['.lua'], monaco: 'lua', optimize: [monacoRegister('lua')], load: () => import('./lua.mjs') },
+```
+
+```js
+// shared/languages/lua.mjs
 export default {
-  id: 'python',
-  label: 'Python',
-  extensions: ['.py'],
-  editor: {
-    language: 'python',
-    optimize: ['monaco-editor/languages/definitions/python/register.js'],
-    setup: () => import('monaco-editor/languages/definitions/python/register.js'),
-  },
-  toolchain: 'python3',
+  toolchain: 'lua',
+  setupEditor: () => import('monaco-editor/languages/definitions/lua/register.js'),
   template: path => '',
   prepare({ directory, options, names, writeFile, resolve }) {
-    return { run: ['python3', ['-u', options.main ?? 'main.py']], env: {} }
+    return { run: ['lua', [options.main ?? 'main.lua']], env: {} }
   },
   compileDiagnostics: (text, { files }) => [],
   runtimeDiagnostics: (text, { files }) => [],
 }
 ```
 
-| 字段 | 必填 | 说明 |
-| --- | --- | --- |
-| `id`、`label`、`extensions`、`editor.language`、`prepare` | 是 | 基本信息和运行方式 |
-| `editor.setup(monaco)` | 否 | 注册高亮。自定义 Monarch 规则可参考 `haskell.mjs` |
-| `editor.optimize` | 否 | 交给 Vite 预构建的模块，和 `setup` 一致 |
-| `toolchain` | 否 | 找不到命令时提示的名字 |
-| `validate(options)` | 否 | 返回 `false` 时拒绝这个练习的配置 |
-| `sourcesValid(names, options)` | 否 | 检查文件组合，例如至少一个 `.c` |
-| `template(path)` | 否 | 新建文件的内容 |
-| `compileTimeout` | 否 | 编译超时，默认 30000 毫秒 |
-| `compileDiagnostics(text, context)` | 否 | 把编译输出解析成 `{ file, line, column, severity, message }` |
-| `runtimeDiagnostics(text, context)` | 否 | 同上，用于崩溃程序的输出 |
+元信息字段，除 `optimize` 外都必填：
 
-`prepare` 在每次运行前调用。`directory` 是写好全部源码的临时文件夹，`names` 是源码路径列表，`resolve(name)` 返回绝对路径。返回 `compile: [command, args]` 可以加一个编译步骤。`shared/languages/shared.mjs` 里有 `matchFile` 和 `shorten` 两个辅助函数。
+| 字段 | 说明 |
+| --- | --- |
+| `id`、`label` | `live-code.config.mjs` 里用的名字和面板上显示的名字 |
+| `extensions` | 这种语言的源码文件。两种语言可以共用一个扩展名，例如 `.h`，以项目的语言为准 |
+| `monaco` | 高亮用的 Monaco 语言 id |
+| `optimize` | 交给 Vite 预构建的模块，和 `setupEditor` 一致 |
+| `load` | 导入定义模块 |
+
+定义字段，除 `prepare` 外都可选：
+
+| 字段 | 说明 |
+| --- | --- |
+| `prepare(context)` | 返回运行方式，见下文 |
+| `setupEditor(monaco)` | 注册高亮。自定义 Monarch 规则可参考 `haskell.mjs` |
+| `toolchain` | 找不到命令时提示的名字 |
+| `validate(options)` | 返回 `false` 时拒绝这个练习的配置 |
+| `sourcesValid(names, options)` | 检查文件组合，例如至少一个 `.c` |
+| `template(path)` | 新建文件的内容 |
+| `compileTimeout` | 编译超时，默认 30000 毫秒 |
+| `compileDiagnostics(text, context)` | 把编译输出解析成 `{ file, line, column, severity, message }` |
+| `runtimeDiagnostics(text, context)` | 同上，用于崩溃程序的输出 |
+
+`prepare` 在每次运行前调用。`directory` 是写好全部源码的临时文件夹，`names` 是源码路径列表，`resolve(name)` 返回绝对路径。返回 `compile: [command, args]` 可以加一个编译步骤。`shared/languages/shared.mjs` 里有 `matchFile` 和 `shorten` 两个辅助函数。定义模块不能在顶层导入 Node 模块。
 
 ## 开发
 

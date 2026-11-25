@@ -3,13 +3,10 @@ import * as monaco from 'monaco-editor/editor/editor.api.js'
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
 import 'monaco-editor/editor/contrib/find/browser/findController.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { createLanguageModel, prepareEditorLanguage } from './editor-languages.mjs'
 import { languageOfFile } from './file-language.mjs'
 import { lineChanges } from './line-diff.mjs'
-import { languageList } from '../shared/languages/index.mjs'
 import { t } from './i18n.mjs'
-
-const languagesReady = Promise.all(languageList.map(language => Promise.resolve(language.editor.setup?.(monaco))
-  .catch(error => console.error(`Live code: ${language.id} editor setup failed`, error))))
 
 const props = defineProps({
   file: { type: String, required: true },
@@ -141,7 +138,7 @@ function editorLabel() {
 }
 
 function fileModel() {
-  if (!models.has(props.file)) models.set(props.file, monaco.editor.createModel(props.code, languageOfFile(props.file, props.language).monaco))
+  if (!models.has(props.file)) models.set(props.file, createLanguageModel(props.code, languageOfFile(props.file, props.language)))
   return models.get(props.file)
 }
 
@@ -323,7 +320,7 @@ function emitFocus() {
 let unmounted = false
 
 onMounted(async () => {
-  await languagesReady
+  await prepareEditorLanguage(languageOfFile(props.file, props.language).id)
   if (unmounted) return
   globalThis.MonacoEnvironment ??= { getWorker: () => new EditorWorker() }
   defineThemes()

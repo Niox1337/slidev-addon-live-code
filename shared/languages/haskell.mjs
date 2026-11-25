@@ -54,18 +54,12 @@ function parseGhcRuntime(text, { files }) {
 }
 
 export default {
-  id: 'haskell',
-  label: 'Haskell',
-  extensions: ['.hs'],
-  editor: {
-    language: 'haskell',
-    async setup(monaco) {
-      if (monaco.languages.getLanguages().some(language => language.id === 'haskell')) return
-      const { haskellConfiguration, haskellTokens } = await import('./haskell-monarch.mjs')
-      monaco.languages.register({ id: 'haskell', extensions: ['.hs'], aliases: ['Haskell'] })
-      monaco.languages.setLanguageConfiguration('haskell', haskellConfiguration)
-      monaco.languages.setMonarchTokensProvider('haskell', haskellTokens)
-    },
+  async setupEditor(monaco) {
+    if (monaco.languages.getLanguages().some(language => language.id === 'haskell')) return
+    const { haskellConfiguration, haskellTokens } = await import('./haskell-monarch.mjs')
+    monaco.languages.register({ id: 'haskell', extensions: ['.hs'], aliases: ['Haskell'] })
+    monaco.languages.setLanguageConfiguration('haskell', haskellConfiguration)
+    monaco.languages.setMonarchTokensProvider('haskell', haskellTokens)
   },
   toolchain: 'ghc',
   validate: options => optionalString(options.compiler) && stringList(options.flags) && optionalString(options.main),

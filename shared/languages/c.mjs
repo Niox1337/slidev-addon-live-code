@@ -57,14 +57,7 @@ function parseCRuntime(text, { files }) {
 }
 
 export default {
-  id: 'c',
-  label: 'C',
-  extensions: ['.c', '.h'],
-  editor: {
-    language: 'c',
-    optimize: ['monaco-editor/languages/definitions/cpp/register.js'],
-    setup: () => import('monaco-editor/languages/definitions/cpp/register.js'),
-  },
+  setupEditor: () => import('monaco-editor/languages/definitions/cpp/register.js'),
   toolchain: 'cc',
   validate: options => optionalString(options.compiler) && stringList(options.flags) && stringList(options.link)
     && (options.sanitize === undefined || typeof options.sanitize === 'boolean'),

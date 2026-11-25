@@ -40,14 +40,7 @@ function parseJavaRuntime(text, { files }) {
 }
 
 export default {
-  id: 'java',
-  label: 'Java',
-  extensions: ['.java'],
-  editor: {
-    language: 'java',
-    optimize: ['monaco-editor/languages/definitions/java/register.js'],
-    setup: () => import('monaco-editor/languages/definitions/java/register.js'),
-  },
+  setupEditor: () => import('monaco-editor/languages/definitions/java/register.js'),
   toolchain: 'javac / java',
   validate: options => typeof options.mainClass === 'string' && javaClass.test(options.mainClass),
   template(path) {

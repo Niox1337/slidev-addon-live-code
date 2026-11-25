@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:f
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { languages } from '../shared/languages/index.mjs'
+import { loadLanguage } from '../shared/languages/index.mjs'
 import { normaliseLocale, translate } from '../shared/messages.mjs'
 import { createTerminals } from './terminal.mjs'
 import { createZip } from './zip.mjs'
@@ -133,6 +133,8 @@ async function applyRenames(root, id, files, extensions) {
   return moved
 }
 
+const languages = {}
+
 async function loadDeck(root) {
   const module = await import(pathToFileURL(join(root, 'live-code.config.mjs')).href)
   const { default: config, steps: definitions = [] } = module
@@ -141,8 +143,10 @@ async function loadDeck(root) {
 
   for (const project of config) {
     const { id, label, directory, loadFiles, initialLines = {}, inputPrompt, language: languageId = 'java' } = project
-    const language = Object.hasOwn(languages, languageId) ? languages[languageId] : null
-    if (!language) throw new Error(`Unknown language for ${id}: ${languageId}. Use ${Object.keys(languages).join(', ')}.`)
+    const language = await loadLanguage(languageId).catch(error => {
+      throw new Error(`Project ${id}: ${error.message}`)
+    })
+    languages[languageId] = language
     if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(id) || projects.has(id)
       || typeof label !== 'string' || !label || (language.validate && !language.validate(project))
       || (inputPrompt !== undefined && (typeof inputPrompt !== 'string' || !inputPrompt))) {

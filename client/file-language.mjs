@@ -1,7 +1,7 @@
 import { languageList } from '../shared/languages/index.mjs'
 
 const plain = { id: 'plaintext', monaco: 'plaintext', label: 'Text' }
-const describe = language => ({ id: language.id, monaco: language.editor.language, label: language.label })
+const describe = language => ({ id: language.id, monaco: language.monaco, label: language.label })
 const byExtension = new Map()
 for (const language of languageList) {
   for (const extension of language.extensions) {
