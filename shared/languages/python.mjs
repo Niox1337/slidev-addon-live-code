@@ -51,6 +51,7 @@ function parseTraceback(text, { files }) {
 }
 
 export default {
+  completion: () => import('./completion/python.mjs'),
   setupEditor: () => import('monaco-editor/languages/definitions/python/register.js'),
   toolchain: 'python3',
   validate: options => optionalString(options.interpreter) && optionalString(options.main),

@@ -34,6 +34,7 @@ function parseGoRuntime(text, { files, directory }) {
 }
 
 export default {
+  completion: () => import('./completion/go.mjs'),
   setupEditor: () => import('monaco-editor/languages/definitions/go/register.js'),
   toolchain: 'go',
   validate: options => stringList(options.flags),

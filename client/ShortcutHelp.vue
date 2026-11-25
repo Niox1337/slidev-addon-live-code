@@ -29,6 +29,8 @@ const groups = computed(() => [
     items: [
       [keys.save, t('help.save')],
       [isMac ? '⌘F' : 'Ctrl+F', t('help.find')],
+      ['Ctrl+Space', t('help.suggest')],
+      ['Tab / Enter / →', t('help.acceptSuggestion')],
       [isMac ? '⌘Z' : 'Ctrl+Z', t('help.undo')],
       ['F2', t('help.rename')],
       [isMac ? '⌘⌫' : 'Delete', t('help.delete')],

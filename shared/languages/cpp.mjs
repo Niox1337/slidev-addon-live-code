@@ -7,4 +7,5 @@ export default gccLanguage({
   header: name => /\.(?:hpp|hh|h)$/.test(name),
   extensions: '(?:cpp|cc|cxx|hpp|hh|h)',
   cpp: true,
+  completion: () => import('./completion/cpp.mjs'),
 })

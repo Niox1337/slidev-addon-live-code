@@ -10,6 +10,8 @@ export default {
       'markdown-exit',
       'monaco-editor/editor/editor.api.js',
       'monaco-editor/editor/contrib/find/browser/findController.js',
+      'monaco-editor/editor/contrib/suggest/browser/suggestController.js',
+      'monaco-editor/editor/contrib/snippet/browser/snippetController2.js',
       ...languageList.flatMap(language => language.optimize ?? []),
     ],
   },

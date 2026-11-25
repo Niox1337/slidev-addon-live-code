@@ -58,7 +58,7 @@ function parseRuntime(text, files, runtime, frame, cpp) {
   return result
 }
 
-export function gccLanguage({ compiler, standard, source, header, extensions, cpp = false }) {
+export function gccLanguage({ compiler, standard, source, header, extensions, cpp = false, completion }) {
   const location = String.raw`^(?:\./)?(.+?\.${extensions}):(\d+):(\d+): `
   const diagnostic = new RegExp(`${location}(?:fatal )?(error|warning): (.*)$`)
   const runtime = new RegExp(`${location}runtime error: (.*)$`)
@@ -67,6 +67,7 @@ export function gccLanguage({ compiler, standard, source, header, extensions, cp
   const frame = new RegExp(String.raw`^\s*#\d+ 0x[0-9a-f]+ in ${symbol} (${path}\.${extensions}):(\d+)(?::(\d+))?`)
 
   return {
+    completion,
     setupEditor: () => import('monaco-editor/languages/definitions/cpp/register.js'),
     toolchain: compiler,
     validate: options => optionalString(options.compiler) && stringList(options.flags) && stringList(options.link)

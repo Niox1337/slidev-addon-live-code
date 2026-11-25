@@ -11,6 +11,7 @@ function runFlags() {
 }
 
 export default {
+  completion: () => import('./completion/typescript.mjs'),
   setupEditor: () => import('monaco-editor/languages/definitions/typescript/register.js'),
   toolchain: 'node',
   validate: options => validateNode(options)

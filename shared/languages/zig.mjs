@@ -39,6 +39,7 @@ function parseZigRuntime(text, { files, directory }) {
 }
 
 export default {
+  completion: () => import('./completion/zig.mjs'),
   async setupEditor(monaco) {
     if (monaco.languages.getLanguages().some(language => language.id === 'zig')) return
     const { zigConfiguration, zigTokens } = await import('./zig-monarch.mjs')

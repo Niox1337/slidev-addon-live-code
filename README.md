@@ -184,6 +184,21 @@ Panel sizes, open tabs, cursor positions and undo history are kept in the browse
 - Runtime crashes mark the lines from the stack trace
 - When the program waits for input, type in the box under the output and press Enter
 
+### Completion
+
+A suggestion box opens while you type in the presenter editor, like in an IDE.
+
+| Suggests | When |
+| --- | --- |
+| Names from the files of the exercise | Typing a word |
+| Keywords and short templates such as `for` or `main` | Typing a word |
+| Methods and fields, such as `append` after `names.` | After `.`, `->` or `::` |
+
+- Accept with **Tab**, **Enter** or **→**. **Esc** closes the box and **Ctrl+Space** opens it
+- Templates have stops. Press **Tab** to jump to the next one
+- Suggestions come from the text of the exercise, not from a type checker
+- The audience view never shows the box. Completion code loads only in the presenter editor, and only for the languages in use
+
 ### Files
 
 | Task | How |
@@ -236,6 +251,8 @@ Press **?** in the panel to see this list.
 | Save code or notes | Ctrl+S | ⌘S |
 | Rename in file list | F2 | F2 |
 | Delete in file list | Delete | ⌘⌫ |
+| Show suggestions | Ctrl+Space | Ctrl+Space |
+| Accept a suggestion | Tab, Enter or → | Tab, Enter or → |
 | Search terminal | Ctrl+Shift+F | ⌘F |
 | Interrupt terminal program | Ctrl+C | Ctrl+C |
 | Shortcut list | ? | ? |
@@ -313,6 +330,7 @@ Definition fields, all optional except `prepare`:
 | --- | --- |
 | `prepare(context)` | Returns how to run, see below |
 | `setupEditor(monaco)` | Registers highlighting. See `haskell.mjs` for a custom Monarch grammar |
+| `completion()` | Imports a module in `completion/` that exports `grammar`, `keywords`, `members` and `snippets`, all optional |
 | `toolchain` | Command name shown when it is missing |
 | `validate(options)` | Return `false` to reject the exercise options |
 | `sourcesValid(names, options)` | Checks the file set, for example at least one `.c` |

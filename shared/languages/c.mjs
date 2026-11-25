@@ -6,4 +6,5 @@ export default gccLanguage({
   source: name => name.endsWith('.c'),
   header: name => name.endsWith('.h'),
   extensions: '[ch]',
+  completion: () => import('./completion/c.mjs'),
 })

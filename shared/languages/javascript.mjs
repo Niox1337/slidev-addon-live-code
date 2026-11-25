@@ -3,6 +3,7 @@ import { checkStep, entryFile, nodeRun, parseNode, parseNodeCheck, validateNode 
 const entry = (names, options) => entryFile(names, options, names.includes('main.mjs') ? 'main.mjs' : 'main.js')
 
 export default {
+  completion: () => import('./completion/javascript.mjs'),
   setupEditor: () => import('monaco-editor/languages/definitions/javascript/register.js'),
   toolchain: 'node',
   validate: validateNode,

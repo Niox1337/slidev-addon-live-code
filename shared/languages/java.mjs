@@ -40,6 +40,7 @@ function parseJavaRuntime(text, { files }) {
 }
 
 export default {
+  completion: () => import('./completion/java.mjs'),
   setupEditor: () => import('monaco-editor/languages/definitions/java/register.js'),
   toolchain: 'javac / java',
   validate: options => typeof options.mainClass === 'string' && javaClass.test(options.mainClass),

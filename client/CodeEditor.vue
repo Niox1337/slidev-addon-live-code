@@ -3,6 +3,7 @@ import * as monaco from 'monaco-editor/editor/editor.api.js'
 import EditorWorker from 'monaco-editor/editor/editor.worker?worker'
 import 'monaco-editor/editor/contrib/find/browser/findController.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { enableCompletion, loadCompletion } from './completion.mjs'
 import { createLanguageModel, prepareEditorLanguage } from './editor-languages.mjs'
 import { languageOfFile } from './file-language.mjs'
 import { lineChanges } from './line-diff.mjs'
@@ -138,7 +139,9 @@ function editorLabel() {
 }
 
 function fileModel() {
-  if (!models.has(props.file)) models.set(props.file, createLanguageModel(props.code, languageOfFile(props.file, props.language)))
+  const language = languageOfFile(props.file, props.language)
+  if (!props.readonly) enableCompletion(language.id)
+  if (!models.has(props.file)) models.set(props.file, createLanguageModel(props.code, language))
   return models.get(props.file)
 }
 
@@ -320,7 +323,10 @@ function emitFocus() {
 let unmounted = false
 
 onMounted(async () => {
-  await prepareEditorLanguage(languageOfFile(props.file, props.language).id)
+  await Promise.all([
+    prepareEditorLanguage(languageOfFile(props.file, props.language).id),
+    props.readonly ? null : loadCompletion(),
+  ])
   if (unmounted) return
   globalThis.MonacoEnvironment ??= { getWorker: () => new EditorWorker() }
   defineThemes()
@@ -362,6 +368,10 @@ onMounted(async () => {
     contextmenu: !props.readonly,
     fixedOverflowWidgets: true,
     scrollbar: { verticalScrollbarSize: 10, horizontalScrollbarSize: 10, useShadows: false },
+    wordBasedSuggestions: 'off',
+    quickSuggestions: props.readonly ? false : { other: 'on', comments: 'off', strings: 'off' },
+    suggestOnTriggerCharacters: !props.readonly,
+    suggest: { showStatusBar: false, preview: false, snippetsPreventQuickSuggestions: false },
   })
   focusDecorations = editor.createDecorationsCollection()
   flashDecorations = editor.createDecorationsCollection()

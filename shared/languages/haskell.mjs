@@ -54,6 +54,7 @@ function parseGhcRuntime(text, { files }) {
 }
 
 export default {
+  completion: () => import('./completion/haskell.mjs'),
   async setupEditor(monaco) {
     if (monaco.languages.getLanguages().some(language => language.id === 'haskell')) return
     const { haskellConfiguration, haskellTokens } = await import('./haskell-monarch.mjs')

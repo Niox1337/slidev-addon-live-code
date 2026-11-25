@@ -33,6 +33,7 @@ function parsePanic(text, { files }) {
 }
 
 export default {
+  completion: () => import('./completion/rust.mjs'),
   setupEditor: () => import('monaco-editor/languages/definitions/rust/register.js'),
   toolchain: 'rustc',
   validate: options => optionalString(options.main) && optionalString(options.edition) && stringList(options.flags),

@@ -1,16 +1,17 @@
 const monacoRegister = name => `monaco-editor/languages/definitions/${name}/register.js`
+const monacoGrammar = name => `monaco-editor/languages/definitions/${name}/${name}.js`
 
 export const languageList = [
-  { id: 'java', label: 'Java', extensions: ['.java'], monaco: 'java', optimize: [monacoRegister('java')] },
+  { id: 'java', label: 'Java', extensions: ['.java'], monaco: 'java', optimize: [monacoRegister('java'), monacoGrammar('java')] },
   { id: 'c', label: 'C', extensions: ['.c', '.h'], monaco: 'c', optimize: [monacoRegister('cpp')] },
-  { id: 'cpp', label: 'C++', extensions: ['.cpp', '.cc', '.cxx', '.hpp', '.hh', '.h'], monaco: 'cpp', optimize: [monacoRegister('cpp')] },
-  { id: 'rust', label: 'Rust', extensions: ['.rs'], monaco: 'rust', optimize: [monacoRegister('rust')] },
-  { id: 'go', label: 'Go', extensions: ['.go'], monaco: 'go', optimize: [monacoRegister('go')] },
+  { id: 'cpp', label: 'C++', extensions: ['.cpp', '.cc', '.cxx', '.hpp', '.hh', '.h'], monaco: 'cpp', optimize: [monacoRegister('cpp'), monacoGrammar('cpp')] },
+  { id: 'rust', label: 'Rust', extensions: ['.rs'], monaco: 'rust', optimize: [monacoRegister('rust'), monacoGrammar('rust')] },
+  { id: 'go', label: 'Go', extensions: ['.go'], monaco: 'go', optimize: [monacoRegister('go'), monacoGrammar('go')] },
   { id: 'zig', label: 'Zig', extensions: ['.zig'], monaco: 'zig' },
   { id: 'haskell', label: 'Haskell', extensions: ['.hs'], monaco: 'haskell' },
-  { id: 'python', label: 'Python', extensions: ['.py'], monaco: 'python', optimize: [monacoRegister('python')] },
-  { id: 'javascript', label: 'JavaScript', extensions: ['.js', '.mjs', '.cjs'], monaco: 'javascript', optimize: [monacoRegister('javascript')] },
-  { id: 'typescript', label: 'TypeScript', extensions: ['.ts', '.mts', '.cts'], monaco: 'typescript', optimize: [monacoRegister('typescript')] },
+  { id: 'python', label: 'Python', extensions: ['.py'], monaco: 'python', optimize: [monacoRegister('python'), monacoGrammar('python')] },
+  { id: 'javascript', label: 'JavaScript', extensions: ['.js', '.mjs', '.cjs'], monaco: 'javascript', optimize: [monacoRegister('javascript'), monacoGrammar('javascript')] },
+  { id: 'typescript', label: 'TypeScript', extensions: ['.ts', '.mts', '.cts'], monaco: 'typescript', optimize: [monacoRegister('typescript'), monacoGrammar('typescript')] },
 ]
 
 for (const language of languageList) {

@@ -184,6 +184,21 @@ export const locale = 'zh' // 或 'en'
 - 程序崩溃时，按调用栈标出相关的行
 - 程序等待输入时，在输出下方的输入框里输入并回车
 
+### 代码补全
+
+在讲者编辑器里输入时会像 IDE 一样弹出建议框。
+
+| 建议内容 | 何时出现 |
+| --- | --- |
+| 练习文件里出现过的名字 | 输入单词时 |
+| 关键字和 `for`、`main` 这类短模板 | 输入单词时 |
+| 方法和字段，例如 `names.` 之后的 `append` | 输入 `.`、`->` 或 `::` 之后 |
+
+- 按 **Tab**、**Enter** 或 **→** 接受，**Esc** 关闭，**Ctrl+Space** 手动打开
+- 模板里有跳转位置，按 **Tab** 跳到下一个
+- 建议来自练习的文本，不做类型检查
+- 观众页不会显示建议框。补全代码只在讲者编辑器里加载，并且只加载用到的语言
+
 ### 文件
 
 | 操作 | 方法 |
@@ -236,6 +251,8 @@ export const locale = 'zh' // 或 'en'
 | 保存代码或笔记 | Ctrl+S | ⌘S |
 | 在文件列表里重命名 | F2 | F2 |
 | 在文件列表里删除 | Delete | ⌘⌫ |
+| 显示补全建议 | Ctrl+Space | Ctrl+Space |
+| 接受补全建议 | Tab、Enter 或 → | Tab、Enter 或 → |
 | 搜索终端 | Ctrl+Shift+F | ⌘F |
 | 中断终端里的程序 | Ctrl+C | Ctrl+C |
 | 快捷键列表 | ? | ? |
@@ -313,6 +330,7 @@ export default {
 | --- | --- |
 | `prepare(context)` | 返回运行方式，见下文 |
 | `setupEditor(monaco)` | 注册高亮。自定义 Monarch 规则可参考 `haskell.mjs` |
+| `completion()` | 导入 `completion/` 里的模块，可导出 `grammar`、`keywords`、`members` 和 `snippets`，都可选 |
 | `toolchain` | 找不到命令时提示的名字 |
 | `validate(options)` | 返回 `false` 时拒绝这个练习的配置 |
 | `sourcesValid(names, options)` | 检查文件组合，例如至少一个 `.c` |
