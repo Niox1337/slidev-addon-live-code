@@ -3,6 +3,7 @@ const monacoRegister = name => `monaco-editor/languages/definitions/${name}/regi
 export const languageList = [
   { id: 'java', label: 'Java', extensions: ['.java'], monaco: 'java', optimize: [monacoRegister('java')], load: () => import('./java.mjs') },
   { id: 'c', label: 'C', extensions: ['.c', '.h'], monaco: 'c', optimize: [monacoRegister('cpp')], load: () => import('./c.mjs') },
+  { id: 'cpp', label: 'C++', extensions: ['.cpp', '.cc', '.cxx', '.hpp', '.hh', '.h'], monaco: 'cpp', optimize: [monacoRegister('cpp')], load: () => import('./cpp.mjs') },
   { id: 'haskell', label: 'Haskell', extensions: ['.hs'], monaco: 'haskell', load: () => import('./haskell.mjs') },
   { id: 'python', label: 'Python', extensions: ['.py'], monaco: 'python', optimize: [monacoRegister('python')], load: () => import('./python.mjs') },
   { id: 'javascript', label: 'JavaScript', extensions: ['.js', '.mjs', '.cjs'], monaco: 'javascript', optimize: [monacoRegister('javascript')], load: () => import('./javascript.mjs') },
