@@ -1,0 +1,72 @@
+export const zigConfiguration = {
+  comments: { lineComment: '//' },
+  brackets: [['{', '}'], ['[', ']'], ['(', ')']],
+  autoClosingPairs: [
+    { open: '{', close: '}' },
+    { open: '[', close: ']' },
+    { open: '(', close: ')' },
+    { open: '"', close: '"', notIn: ['string', 'comment'] },
+    { open: '\'', close: '\'', notIn: ['string', 'comment'] },
+  ],
+  surroundingPairs: [
+    { open: '{', close: '}' },
+    { open: '[', close: ']' },
+    { open: '(', close: ')' },
+    { open: '"', close: '"' },
+    { open: '\'', close: '\'' },
+  ],
+  indentationRules: {
+    increaseIndentPattern: /[([{]\s*$/,
+    decreaseIndentPattern: /^\s*[)\]}]/,
+  },
+}
+
+export const zigTokens = {
+  defaultToken: '',
+  tokenPostfix: '.zig',
+  unicode: true,
+  keywords: [
+    'addrspace', 'align', 'allowzero', 'and', 'asm', 'async', 'await', 'break', 'callconv', 'catch',
+    'comptime', 'const', 'continue', 'defer', 'else', 'enum', 'errdefer', 'error', 'export', 'extern',
+    'fn', 'for', 'if', 'inline', 'noalias', 'noinline', 'nosuspend', 'opaque', 'or', 'orelse', 'packed',
+    'pub', 'resume', 'return', 'linksection', 'struct', 'suspend', 'switch', 'test', 'threadlocal',
+    'try', 'union', 'unreachable', 'usingnamespace', 'var', 'volatile', 'while',
+  ],
+  types: [
+    'anyerror', 'anyframe', 'anyopaque', 'anytype', 'bool', 'comptime_float', 'comptime_int',
+    'isize', 'noreturn', 'type', 'usize', 'void',
+    'c_char', 'c_short', 'c_ushort', 'c_int', 'c_uint', 'c_long', 'c_ulong',
+    'c_longlong', 'c_ulonglong', 'c_longdouble',
+  ],
+  constants: ['false', 'null', 'true', 'undefined'],
+  escapes: /\\(?:[nrt\\'"]|x[\da-fA-F]{2}|u\{[\da-fA-F]+\})/,
+  tokenizer: {
+    root: [
+      [/\/\/[/!].*$/, 'comment.doc'],
+      [/\/\/.*$/, 'comment'],
+      [/\\\\.*$/, 'string'],
+      [/@"(?:[^\\"]|@escapes)*"/, 'identifier'],
+      [/@[A-Za-z_]\w*/, 'keyword'],
+      [/(?:[iu]\d+|f(?:16|32|64|80|128))\b/, 'type'],
+      [/[A-Za-z_]\w*/, { cases: { '@keywords': 'keyword', '@types': 'type', '@constants': 'constant', '@default': 'identifier' } }],
+      [/0x[\da-fA-F_]+(?:\.[\da-fA-F_]+)?[pP][+-]?\d[\d_]*/, 'number.float'],
+      [/0x[\da-fA-F_]+/, 'number.hex'],
+      [/0o[0-7_]+/, 'number.octal'],
+      [/0b[01_]+/, 'number.binary'],
+      [/\d[\d_]*\.\d[\d_]*(?:[eE][+-]?\d[\d_]*)?|\d[\d_]*[eE][+-]?\d[\d_]*/, 'number.float'],
+      [/\d[\d_]*/, 'number'],
+      [/'(?:[^\\']|@escapes)'/, 'string'],
+      [/"/, 'string', '@string'],
+      [/[{}()[\]]/, '@brackets'],
+      [/[,;]/, 'delimiter'],
+      [/(?:[!&*+\-.:<=>?^|%~]|\/(?!\/))+/, 'operator'],
+      [/\s+/, 'white'],
+    ],
+    string: [
+      [/[^\\"]+/, 'string'],
+      [/@escapes/, 'string.escape'],
+      [/\\./, 'string.escape.invalid'],
+      [/"/, 'string', '@pop'],
+    ],
+  },
+}
